@@ -244,10 +244,32 @@
     });
   }
 
+  function moveVideoToStreamPopup() {
+    var preview = document.getElementById('preview');
+    var wrap = document.getElementById('hcStreamVideoWrap');
+    if (preview && wrap && !wrap.contains(preview)) {
+      preview.hidden = false;
+      preview.style.display = 'block';
+      wrap.appendChild(preview);
+    }
+  }
+
+  function returnVideoFromStreamPopup() {
+    var preview = document.getElementById('preview');
+    var wrap = document.getElementById('hcStreamVideoWrap');
+    var shell = document.getElementById('shell');
+    if (preview && shell && wrap && wrap.contains(preview)) {
+      preview.hidden = true;
+      preview.style.display = '';
+      shell.appendChild(preview);
+    }
+  }
+
   if (playBtn) {
     playBtn.addEventListener('click', function () {
       if (hiddenStream) hiddenStream.click();
       if (hcStreamPopup) hcStreamPopup.classList.add('show');
+      moveVideoToStreamPopup();
       startStreamWaveAnimation();
     });
   }
@@ -272,6 +294,7 @@
     streamPlayBtn.addEventListener('click', function () {
       if (hiddenStream) hiddenStream.click();
       if (hcStreamPopup) hcStreamPopup.classList.remove('show');
+      returnVideoFromStreamPopup();
       stopStreamWaveAnimation();
     });
   }
@@ -279,6 +302,7 @@
   if (streamMsgBtn) {
     streamMsgBtn.addEventListener('click', function () {
       if (hcStreamPopup) hcStreamPopup.classList.remove('show');
+      returnVideoFromStreamPopup();
       stopStreamWaveAnimation();
       if (hcMsgPopup) hcMsgPopup.classList.add('show');
     });
@@ -298,6 +322,7 @@
       if (hcMsgPopup) hcMsgPopup.classList.remove('show');
       if (hiddenStream) hiddenStream.click();
       if (hcStreamPopup) hcStreamPopup.classList.add('show');
+      moveVideoToStreamPopup();
       startStreamWaveAnimation();
     });
   }
@@ -419,6 +444,19 @@
   setInterval(syncDoctorInfo, 1000);
   setTimeout(syncDoctorInfo, 500);
 
+  function parseMsgElement(el) {
+    var sender = '';
+    var time = '';
+    var text = '';
+    var senderEl = el.querySelector('.msg-header');
+    var timeEl = el.querySelector('.msg-timestamp');
+    var textEl = el.querySelector('.msg-text');
+    if (senderEl) sender = senderEl.textContent.trim();
+    if (timeEl) time = timeEl.textContent.trim();
+    if (textEl) text = textEl.textContent.trim();
+    return { sender: sender, time: time, text: text };
+  }
+
   function syncTranscripts() {
     try {
       var hiddenMsgList = document.getElementById('msgList');
@@ -428,33 +466,38 @@
       if (!items || items.length === 0) return;
 
       var last = items[items.length - 1];
-      var text = last ? last.textContent : '';
+      var lastParsed = parseMsgElement(last);
 
-      if (hcTranscriptCurrent && text) {
-        var parts = text.split(':');
-        hcTranscriptCurrent.textContent = parts.length > 1 ? parts.slice(1).join(':').trim() : text;
+      if (hcTranscriptCurrent) {
+        hcTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
       }
 
-      if (hcSoloTranscriptCurrent && text) {
-        var parts2 = text.split(':');
-        hcSoloTranscriptCurrent.textContent = parts2.length > 1 ? parts2.slice(1).join(':').trim() : text;
+      if (hcSoloTranscriptCurrent) {
+        hcSoloTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
       }
 
       if (items.length >= 2) {
         var prev = items[items.length - 2];
-        var prevText = prev ? prev.textContent : '';
-        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevText;
-        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevText;
+        var prevParsed = parseMsgElement(prev);
+        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevParsed.text;
+        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevParsed.text;
       }
 
       if (hcRecentMsgContent) {
         hcRecentMsgContent.innerHTML = '';
         var count = Math.min(items.length, 5);
         for (var i = items.length - 1; i >= items.length - count && i >= 0; i--) {
-          var item = items[i];
+          var parsed = parseMsgElement(items[i]);
           var div = document.createElement('div');
           div.className = 'hc-msg-item';
-          div.innerHTML = '<div class="hc-msg-text">' + (item.textContent || '') + '</div>';
+          var html = '';
+          if (parsed.sender) {
+            html += '<div class="hc-msg-item-header"><span class="hc-msg-sender">' + parsed.sender + '</span>';
+            if (parsed.time) html += '<span class="hc-msg-time">' + parsed.time + '</span>';
+            html += '</div>';
+          }
+          if (parsed.text) html += '<div class="hc-msg-text">' + parsed.text + '</div>';
+          div.innerHTML = html;
           hcRecentMsgContent.appendChild(div);
         }
       }

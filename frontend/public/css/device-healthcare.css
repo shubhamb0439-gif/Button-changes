@@ -16,7 +16,10 @@ html,body{
   border-radius:44px;
   flex-shrink:0;
 }
-@media(max-height:860px){
+@media(max-width:430px){
+  .shell{width:100vw;height:100dvh;border-radius:0;}
+}
+@media(min-width:431px) and (max-height:860px){
   .shell{width:min(390px,100vw);height:min(844px,100dvh);border-radius:clamp(0px,5vw,44px);}
 }
 
@@ -328,7 +331,7 @@ html,body{
   background:rgba(0,0,0,0.6);
   display:none;
   flex-direction:column;
-  border-radius:44px;
+  border-radius:inherit;
   overflow:hidden;
 }
 
@@ -450,7 +453,7 @@ html,body{
   background:linear-gradient(170deg, #e8d5f5 0%, #d8c6ec 30%, #c9b8e0 60%, #d4c4ea 100%);
   display:none;
   flex-direction:column;
-  border-radius:44px;
+  border-radius:inherit;
   overflow:hidden;
 }
 
@@ -503,6 +506,7 @@ html,body{
   justify-content:space-between;
   align-items:flex-start;
   margin-bottom:4px;
+  gap:8px;
 }
 
 .hc-msg-sender{
@@ -674,4 +678,49 @@ html,body{
 
 .hc-center-content.hidden{
   display:none;
+}
+
+@media(max-width:360px){
+  .hc-header{padding:12px 14px 10px;}
+  .hc-logo{width:36px;height:36px;}
+  .hc-logo img{width:36px!important;height:36px!important;}
+  .hc-doctor-name{font-size:12px;max-width:100px;}
+  .hc-profile-circle{width:28px;height:28px;}
+  .hc-profile-circle .status-dot{width:8px;height:8px;}
+  .hc-healthcare-logo{width:150px;height:150px;}
+  .hc-healthcare-logo img{width:150px!important;height:150px!important;}
+  .hc-app-title{font-size:22px;}
+  .hc-bottom-nav{gap:16px;bottom:20px;}
+  .hc-nav-btn.play-btn{width:60px!important;height:60px!important;}
+  .hc-nav-btn.orb-btn{width:56px;height:56px;}
+  .hc-nav-btn.msg-btn{width:60px!important;height:60px!important;}
+  .hc-stream-controls{gap:8px;padding:0 16px 12px;}
+  .hc-stream-ctrl-btn{padding:8px 14px;font-size:11px;}
+  .hc-stream-bottom-nav{gap:16px;padding:0 0 20px;}
+  .hc-msg-input-area{padding:10px 14px 20px;}
+  .hc-msg-body{padding:0 14px 14px;}
+  .hc-home-wave canvas{width:280px;height:100px;}
+}
+
+@media(max-height:700px){
+  .hc-center-content{transform:translate(-50%,-50%);}
+  .hc-healthcare-logo{width:140px;height:140px;}
+  .hc-healthcare-logo img{width:140px!important;height:140px!important;}
+  .hc-app-title{font-size:20px;}
+  .hc-bottom-nav{bottom:16px;gap:16px;}
+  .hc-nav-btn.play-btn{width:56px!important;height:56px!important;}
+  .hc-nav-btn.orb-btn{width:52px;height:52px;}
+  .hc-nav-btn.msg-btn{width:56px!important;height:56px!important;}
+  .hc-stream-bottom-nav{padding:0 0 16px;gap:16px;}
+  .hc-stream-controls{padding:0 20px 10px;}
+  .hc-msg-input-area{padding:8px 16px 16px;}
+}
+
+@media(min-width:430px) and (max-width:768px){
+  .shell{width:100vw;height:100dvh;border-radius:0;}
+}
+
+@media(min-width:769px){
+  .hc-stream-popup{border-radius:44px;}
+  .hc-msg-popup{border-radius:44px;}
 }
