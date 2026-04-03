@@ -57,10 +57,15 @@
 
         <!-- ============ HOME: CENTER CONTENT ============ -->
         <div class="hc-center-content" id="hcHomeContent">
-            <div class="hc-healthcare-logo">
+            <div class="hc-healthcare-logo" id="hcHealthcareLogo">
                 <img src="/images/logo_1.png" alt="Healthcare Logo" style="width: 200px; height: 200px; object-fit: contain;">
             </div>
-            <div class="hc-app-title"><strong>OG</strong> Clinical Assistant</div>
+            <div class="hc-app-title" id="hcAppTitle"><strong>OG</strong> Clinical Assistant</div>
+        </div>
+
+        <!-- ============ HOME WAVEFORM (shown when mic active on home screen) ============ -->
+        <div class="hc-home-wave" id="hcHomeWave">
+            <canvas id="hcHomeWaveCanvas" width="340" height="120"></canvas>
         </div>
 
         <!-- ============ BOTTOM NAV (3 buttons) ============ -->

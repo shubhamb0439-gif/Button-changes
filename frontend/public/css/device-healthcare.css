@@ -651,3 +651,27 @@ html,body{
   justify-content:center;
   gap:24px;
 }
+
+.hc-home-wave{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:10;
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.hc-home-wave.show{
+  display:flex;
+}
+
+.hc-home-wave canvas{
+  width:340px;
+  height:120px;
+}
+
+.hc-center-content.hidden{
+  display:none;
+}

@@ -1,394 +1,465 @@
-<!doctype html>
-<html lang="en">
+(function () {
+  var hiddenVoice = document.getElementById('btnVoice');
+  var hiddenConnect = document.getElementById('btnConnect');
+  var hiddenStream = document.getElementById('btnStream');
 
-<head>
-    <meta charset="utf-8" />
-    <title>XR Vision</title>
-    <meta name="viewport"
-        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-    <meta name="theme-color" content="#d8c6ec" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="/manifest.webmanifest">
+  var orbBtn = document.getElementById('hcOrbBtn');
+  var playBtn = document.getElementById('hcPlayBtn');
+  var msgBtn = document.getElementById('hcMsgBtn');
 
-    <link rel="icon" href="/public/images/xr-logo-192.png" sizes="192x192" />
-    <link rel="apple-touch-icon" href="/public/images/xr-logo-192.png" />
+  var streamOrbBtn = document.getElementById('hcStreamOrbBtn');
+  var streamPlayBtn = document.getElementById('hcStreamPlayBtn');
+  var streamMsgBtn = document.getElementById('hcStreamMsgBtn');
 
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/public/css/device-healthcare.css" />
-</head>
+  var msgOrbBtn = document.getElementById('hcMsgOrbBtn');
+  var msgPlayBtn = document.getElementById('hcMsgPlayBtn');
+  var msgMsgBtn = document.getElementById('hcMsgMsgBtn');
 
-<body>
-    <div class="shell" id="shell">
-        <canvas id="sc"></canvas>
+  var hcStreamPopup = document.getElementById('hcStreamPopup');
+  var hcMsgPopup = document.getElementById('hcMsgPopup');
 
-        <!-- ============ HEALTHCARE HEADER ============ -->
-        <div class="hc-header">
-            <div class="hc-logo">
-                <img src="/images/logo_1.png" alt="Logo" style="width: 48px; height: 48px; object-fit: contain;">
-            </div>
-            <div class="hc-profile-area" id="hcProfileToggle">
-                <span class="hc-doctor-name" id="hcDoctorName"></span>
-                <div class="hc-profile-circle disconnected" id="hcProfileCircle">
-                    <div class="status-dot"></div>
-                </div>
-            </div>
-        </div>
+  var hcProfileToggle = document.getElementById('hcProfileToggle');
+  var hcProfilePopup = document.getElementById('hcProfilePopup');
+  var hcPopupOverlay = document.getElementById('hcPopupOverlay');
+  var hcPopupConnect = document.getElementById('hcPopupConnect');
 
-        <!-- ============ PROFILE POPUP ============ -->
-        <div class="hc-popup-overlay" id="hcPopupOverlay"></div>
-        <div class="hc-profile-popup" id="hcProfilePopup">
-            <div class="hc-popup-name" id="hcPopupName">Doctor</div>
-            <div class="hc-popup-scribe" id="hcPopupScribe">
-                Assigned Scribe: <span id="hcPopupScribeName">--</span>
-                <span class="status-badge offline" id="hcPopupScribeBadge">Offline</span>
-            </div>
-            <button class="hc-popup-btn connect-btn" id="hcPopupConnect">Connect</button>
-            <button class="hc-popup-btn logout-btn" id="hcPopupLogout">Log out</button>
-        </div>
+  var hcWaveCanvas = document.getElementById('hcWaveCanvas');
+  var hcTranscriptCurrent = document.getElementById('hcTranscriptCurrent');
+  var hcTranscriptPrev = document.getElementById('hcTranscriptPrev');
+  var hcTranscriptNext = document.getElementById('hcTranscriptNext');
+  var hcSummaryDisplay = document.getElementById('hcSummaryDisplay');
+  var hcSummaryText = document.getElementById('hcSummaryText');
 
-        <!-- ============ STANDALONE TRANSCRIPT OVERLAY (shown when stream popup is closed) ============ -->
-        <div class="hc-solo-transcript" id="hcSoloTranscript">
-            <div class="hc-transcript-prev" id="hcSoloTranscriptPrev"></div>
-            <div class="hc-transcript-current" id="hcSoloTranscriptCurrent"></div>
-        </div>
+  var hcHomeWave = document.getElementById('hcHomeWave');
+  var hcHomeWaveCanvas = document.getElementById('hcHomeWaveCanvas');
+  var hcHomeContent = document.getElementById('hcHomeContent');
 
-        <!-- ============ HOME: CENTER CONTENT ============ -->
-        <div class="hc-center-content" id="hcHomeContent">
-            <div class="hc-healthcare-logo">
-                <img src="/images/logo_1.png" alt="Healthcare Logo" style="width: 200px; height: 200px; object-fit: contain;">
-            </div>
-            <div class="hc-app-title"><strong>OG</strong> Clinical Assistant</div>
-        </div>
+  var hcDoctorName = document.getElementById('hcDoctorName');
+  var hcStreamDoctorName = document.getElementById('hcStreamDoctorName');
+  var hcMsgDoctorName = document.getElementById('hcMsgDoctorName');
+  var hcPopupName = document.getElementById('hcPopupName');
+  var hcProfileCircle = document.getElementById('hcProfileCircle');
+  var hcStreamProfileCircle = document.getElementById('hcStreamProfileCircle');
+  var hcMsgProfileCircle = document.getElementById('hcMsgProfileCircle');
+  var hcPopupScribeName = document.getElementById('hcPopupScribeName');
+  var hcPopupScribeBadge = document.getElementById('hcPopupScribeBadge');
 
-        <!-- ============ BOTTOM NAV (3 buttons) ============ -->
-        <div class="hc-bottom-nav" id="hcBottomNav">
-            <button class="hc-nav-btn play-btn" id="hcPlayBtn" title="Start Stream">
-                <img src="/public/images/play_button.png" alt="Play" class="btn-icon">
-            </button>
-            <button class="hc-nav-btn orb-btn" id="hcOrbBtn" title="Voice Command">
-                <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
-            </button>
-            <button class="hc-nav-btn msg-btn" id="hcMsgBtn" title="Messages">
-                <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
-            </button>
-        </div>
+  var hcSoloTranscript = document.getElementById('hcSoloTranscript');
+  var hcSoloTranscriptCurrent = document.getElementById('hcSoloTranscriptCurrent');
+  var hcSoloTranscriptPrev = document.getElementById('hcSoloTranscriptPrev');
 
-        <!-- ============ STREAM POPUP (FULLSCREEN) ============ -->
-        <div class="hc-stream-popup" id="hcStreamPopup">
-            <div class="hc-stream-video-wrap" id="hcStreamVideoWrap"></div>
-            <div class="hc-stream-overlay">
-                <div class="hc-stream-header">
-                    <div class="hc-logo">
-                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="24" cy="24" r="22" fill="#7c3aed" stroke="#5b21b6" stroke-width="1.5"/>
-                            <circle cx="24" cy="26" r="12" fill="#14b8a6"/>
-                            <rect x="20" y="20" width="8" height="12" rx="1" fill="#fff"/>
-                            <rect x="18" y="24" width="12" height="4" rx="1" fill="#fff"/>
-                            <path d="M14 16 Q24 8 34 16" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                            <circle cx="14" cy="16" r="2.5" fill="#14b8a6"/>
-                        </svg>
-                    </div>
-                    <div class="hc-profile-area">
-                        <span class="hc-doctor-name" id="hcStreamDoctorName"></span>
-                        <div class="hc-profile-circle" id="hcStreamProfileCircle">
-                            <div class="status-dot"></div>
-                        </div>
-                    </div>
-                </div>
+  var hcStreamMuteBtn = document.getElementById('hcStreamMuteBtn');
+  var hcStreamHideBtn = document.getElementById('hcStreamHideBtn');
+  var hcStreamPauseBtn = document.getElementById('hcStreamPauseBtn');
 
-                <div class="hc-stream-wave" id="hcStreamWave">
-                    <canvas id="hcWaveCanvas" width="280" height="100"></canvas>
-                </div>
+  var hcMsgInput = document.getElementById('hcMsgInput');
+  var hcMsgSendBtn = document.getElementById('hcMsgSendBtn');
+  var hcRecentMsgContent = document.getElementById('hcRecentMsgContent');
+  var hcMsgHistoryContent = document.getElementById('hcMsgHistoryContent');
 
-                <div class="hc-stream-transcription" id="hcTranscription">
-                    <div class="hc-transcript-prev" id="hcTranscriptPrev"></div>
-                    <div class="hc-transcript-current" id="hcTranscriptCurrent"></div>
-                    <div class="hc-transcript-next" id="hcTranscriptNext"></div>
-                </div>
+  var homeWaveAnimFrame = null;
+  var homeWaveCtx = hcHomeWaveCanvas ? hcHomeWaveCanvas.getContext('2d') : null;
 
-                <div class="hc-summary-display" id="hcSummaryDisplay" style="display:none">
-                    <div class="hc-summary-text" id="hcSummaryText"></div>
-                </div>
+  function startHomeWaveAnimation() {
+    if (!hcHomeWaveCanvas || !homeWaveCtx) return;
+    if (homeWaveAnimFrame) return;
 
-                <div class="hc-stream-controls">
-                    <button class="hc-stream-ctrl-btn" id="hcStreamMuteBtn">Mute</button>
-                    <button class="hc-stream-ctrl-btn" id="hcStreamHideBtn">Hide</button>
-                    <button class="hc-stream-ctrl-btn" id="hcStreamPauseBtn">Pause</button>
-                </div>
+    var W = hcHomeWaveCanvas.width;
+    var H = hcHomeWaveCanvas.height;
+    var t = 0;
 
-                <div class="hc-stream-bottom-nav">
-                    <button class="hc-nav-btn play-btn" id="hcStreamPlayBtn" title="Stop Stream">
-                        <img src="/public/images/pause_button.png" alt="Pause" class="btn-icon">
-                    </button>
-                    <button class="hc-nav-btn orb-btn" id="hcStreamOrbBtn" title="Voice Command">
-                        <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
-                    </button>
-                    <button class="hc-nav-btn msg-btn" id="hcStreamMsgBtn" title="Messages">
-                        <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
-                    </button>
-                </div>
-            </div>
-        </div>
+    function drawFrame() {
+      homeWaveCtx.clearRect(0, 0, W, H);
+      t++;
 
-        <!-- ============ MESSAGES POPUP ============ -->
-        <div class="hc-msg-popup" id="hcMsgPopup">
-            <div class="hc-msg-header">
-                <div class="hc-logo">
-                    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="24" cy="24" r="22" fill="#7c3aed" stroke="#5b21b6" stroke-width="1.5"/>
-                        <circle cx="24" cy="26" r="12" fill="#14b8a6"/>
-                        <rect x="20" y="20" width="8" height="12" rx="1" fill="#fff"/>
-                        <rect x="18" y="24" width="12" height="4" rx="1" fill="#fff"/>
-                        <path d="M14 16 Q24 8 34 16" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                        <circle cx="14" cy="16" r="2.5" fill="#14b8a6"/>
-                    </svg>
-                </div>
-                <div class="hc-profile-area">
-                    <span class="hc-doctor-name" id="hcMsgDoctorName"></span>
-                    <div class="hc-profile-circle" id="hcMsgProfileCircle">
-                        <div class="status-dot"></div>
-                    </div>
-                </div>
-            </div>
+      var xrCanvas = window._xrCanvas;
+      var hasLive = xrCanvas && xrCanvas.analyser && xrCanvas.listening && xrCanvas.dataArr;
+      var amp = 0;
 
-            <div class="hc-msg-body" id="hcMsgBody">
-                <div class="hc-msg-section" id="hcRecentMsgSection">
-                    <div class="hc-msg-section-title">Recent Messages</div>
-                    <div id="hcRecentMsgContent"></div>
-                </div>
-                <div class="hc-msg-section" id="hcMsgHistorySection">
-                    <div class="hc-msg-section-title">Message History</div>
-                    <div id="hcMsgHistoryContent"></div>
-                </div>
-            </div>
-
-            <div class="hc-msg-input-area">
-                <input type="text" class="hc-msg-input" id="hcMsgInput" placeholder="Type your message.....">
-                <button class="hc-msg-send-btn" id="hcMsgSendBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="hc-stream-bottom-nav">
-                <button class="hc-nav-btn play-btn" id="hcMsgPlayBtn" title="Start Stream">
-                    <img src="/public/images/play_button.png" alt="Play" class="btn-icon">
-                </button>
-                <button class="hc-nav-btn orb-btn" id="hcMsgOrbBtn" title="Voice Command">
-                    <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
-                </button>
-                <button class="hc-nav-btn msg-btn" id="hcMsgMsgBtn" title="Messages">
-                    <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
-                </button>
-            </div>
-        </div>
-
-        <!-- ============ OLD ORB (hidden, needed by device-canvas.js) ============ -->
-        <div class="orb-root" id="orbVisual">
-            <div class="halo"></div>
-            <div class="ground"></div>
-            <div class="ring-spin"></div>
-            <div class="ring-spin-border"></div>
-            <div class="ring-inner"></div>
-            <div class="sphere">
-                <div class="nebula"></div>
-                <canvas id="wc"></canvas>
-            </div>
-        </div>
-
-        <div class="resp" id="responseCard">
-            <div class="rtxt" id="responseText"></div>
-        </div>
-
-        <div class="mic-wrap">
-            <div class="mic-zone" id="micButton">
-                <div class="mic-btn" id="mb"></div>
-            </div>
-            <div class="mic-lbl" id="micInstruction"></div>
-        </div>
-
-        <div class="control-panel" id="controlPanel">
-            <div class="xr-id-section">
-                <input type="text" id="xrIdDisplay" class="xr-id-display" readonly placeholder="XR-ID" />
-                <div id="peerStatusDisplay" class="peer-status-display" style="display: none;">
-                    <span id="peerStatusText"></span>
-                </div>
-            </div>
-            <div class="manual-controls">
-                <button class="control-btn" id="manualStreamBtn" data-action="stream"><span>Start Stream</span></button>
-                <button class="control-btn" id="manualMuteBtn" data-action="mute"><span>Mute</span></button>
-                <button class="control-btn" id="manualVideoBtn" data-action="video"><span>Hide Video</span></button>
-                <button class="control-btn audio-btn-panel" id="btnAudio" disabled><span id="audioLabel">Audio</span></button>
-            </div>
-            <div class="messages-section">
-                <div class="messages-header">Messages</div>
-                <div class="messages-list" id="visibleMsgList"></div>
-                <div class="message-input-section">
-                    <input type="text" id="visibleMsgInput" class="msg-input" placeholder="Type a message..." />
-                    <label class="urgent-checkbox"><input type="checkbox" id="visibleChkUrgent" /><span>Urgent</span></label>
-                    <button class="send-btn" id="visibleBtnSend">Send</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="toast" id="toast"></div>
-
-        <!-- Hidden functional elements for ui.js (UNCHANGED) -->
-        <div id="status" class="status status-disconnected" hidden>Status: Disconnected</div>
-        <div id="chipLastCmd" hidden>Heard: ...</div>
-        <div id="bdot" class="bdot off" hidden></div>
-        <span id="btxt" class="btxt off" hidden>DISCONNECTED</span>
-
-        <div class="hidden-controls" hidden>
-            <input id="deviceXrIdInput" placeholder="Enter Device XR ID (e.g. 1234)" />
-            <button id="btnConnect">Connect</button>
-            <button id="btnStream">Start Stream</button>
-            <button id="btnMute">Mute</button>
-            <button id="btnVideo">Hide Video</button>
-            <button id="btnVoice">Start Voice</button>
-            <button id="btnStartRec">Start Recording</button>
-            <button id="btnStopRec">Stop Recording</button>
-        </div>
-
-        <video id="preview" autoplay playsinline webkit-playsinline muted hidden></video>
-        <div id="noStream" hidden>Stream not ready</div>
-
-        <div class="hidden-controls" hidden>
-            <div id="msgList"></div>
-            <input id="msgInput" placeholder="Type a message..." />
-            <input id="chkUrgent" type="checkbox" />
-            <button id="btnSend">Send</button>
-        </div>
-
-        <!-- Old logout button (hidden, but ID preserved for existing logout handler) -->
-        <button id="logoutBtn" class="old-logout" hidden></button>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/public/js/config.js"></script>
-    <script src="/public/js/device-canvas.js"></script>
-    <script type="module" src="/public/js/ui.js"></script>
-    <script src="/public/js/device-healthcare-ui.js"></script>
-
-    <script>
-        async function maybeRegisterSW() {
-            if (!('serviceWorker' in navigator)) return;
-            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
-            if (!location.pathname.startsWith('/device')) return;
-            try {
-                const response = await fetch('/device/sw.js', { method: 'HEAD' });
-                if (response.status !== 200) return;
-                const registration = await navigator.serviceWorker.register('/device/sw.js', { scope: '/device/' });
-                console.log('[SW] Registered successfully', registration.scope);
-            } catch (err) {
-                console.warn('[SW] Registration failed:', err.message);
-            }
+      if (hasLive) {
+        xrCanvas.analyser.getByteTimeDomainData(xrCanvas.dataArr);
+        var rms = 0;
+        for (var i = 0; i < xrCanvas.dataArr.length; i++) {
+          var v = (xrCanvas.dataArr[i] / 128) - 1;
+          rms += v * v;
         }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', maybeRegisterSW);
+        amp = Math.min(Math.sqrt(rms / xrCanvas.dataArr.length) * 7, 1);
+      }
+
+      var cy = H * 0.5;
+      var N = 380;
+      var idle = Math.max(0, 1 - amp * 1.5);
+
+      var layers = [
+        { r: 167, g: 139, b: 250, lw: 2.0, glow: 22, al: 0.95 },
+        { r: 139, g: 92, b: 246, lw: 1.5, glow: 15, al: 0.54 },
+        { r: 192, g: 132, b: 252, lw: 0.95, glow: 9, al: 0.27 }
+      ];
+
+      for (var li = 0; li < layers.length; li++) {
+        var L = layers[li];
+        var phOff = li * 1.2;
+        var spd = 1 - li * 0.08;
+        var xs = new Float32Array(N + 1);
+        var ys = new Float32Array(N + 1);
+
+        for (var i = 0; i <= N; i++) {
+          var u = i / N;
+          var ph = t * 0.011 * spd + phOff;
+          var bA = H * (0.088 + li * 0.003);
+          var idY =
+            Math.sin(u * Math.PI * 2 * 2.2 + ph) * bA * 0.62 +
+            Math.sin(u * Math.PI * 2 * 1.1 + ph * 0.70) * bA * 0.44 +
+            Math.sin(u * Math.PI * 2 * 0.52 + ph * 0.36) * bA * 0.20;
+          var micY = 0;
+          if (hasLive && xrCanvas.dataArr) {
+            var idx = Math.floor(u * (xrCanvas.dataArr.length - 1));
+            var val = (xrCanvas.dataArr[idx] / 128) - 1;
+            micY = val * H * 0.38 * amp + Math.sin(u * Math.PI * 2 * 2.2 + ph) * H * 0.05 * amp;
+          }
+          var total = idY * idle + (idY * 0.2 + micY) * amp;
+          xs[i] = u * W;
+          ys[i] = cy + total * Math.sin(u * Math.PI);
+        }
+
+        var makePath = function () {
+          homeWaveCtx.beginPath();
+          homeWaveCtx.moveTo(xs[0], ys[0]);
+          for (var j = 1; j <= N; j++) homeWaveCtx.lineTo(xs[j], ys[j]);
+        };
+
+        var mkGrad = function (a) {
+          var g = homeWaveCtx.createLinearGradient(0, 0, W, 0);
+          g.addColorStop(0, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0)');
+          g.addColorStop(0.07, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + a + ')');
+          g.addColorStop(0.50, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + Math.min(a * 1.1, 1) + ')');
+          g.addColorStop(0.93, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + a + ')');
+          g.addColorStop(1, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0)');
+          return g;
+        };
+
+        homeWaveCtx.lineJoin = 'round';
+        homeWaveCtx.lineCap = 'round';
+
+        makePath();
+        homeWaveCtx.lineWidth = L.lw * 11;
+        homeWaveCtx.strokeStyle = mkGrad(L.al * 0.09);
+        homeWaveCtx.shadowBlur = 0;
+        homeWaveCtx.stroke();
+
+        makePath();
+        homeWaveCtx.lineWidth = L.lw * 3.8;
+        homeWaveCtx.strokeStyle = mkGrad(L.al * 0.43);
+        homeWaveCtx.shadowColor = 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0.88)';
+        homeWaveCtx.shadowBlur = L.glow;
+        homeWaveCtx.stroke();
+
+        makePath();
+        homeWaveCtx.lineWidth = L.lw;
+        homeWaveCtx.strokeStyle = mkGrad(L.al);
+        homeWaveCtx.shadowColor = 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',1)';
+        homeWaveCtx.shadowBlur = L.glow * 0.45;
+        homeWaveCtx.stroke();
+      }
+
+      homeWaveCtx.shadowBlur = 0;
+      homeWaveAnimFrame = requestAnimationFrame(drawFrame);
+    }
+
+    drawFrame();
+  }
+
+  function stopHomeWaveAnimation() {
+    if (homeWaveAnimFrame) {
+      cancelAnimationFrame(homeWaveAnimFrame);
+      homeWaveAnimFrame = null;
+    }
+    if (homeWaveCtx && hcHomeWaveCanvas) {
+      homeWaveCtx.clearRect(0, 0, hcHomeWaveCanvas.width, hcHomeWaveCanvas.height);
+    }
+  }
+
+  function setHomeMicActive(active) {
+    if (active) {
+      if (hcHomeContent) hcHomeContent.classList.add('hidden');
+      if (hcHomeWave) hcHomeWave.classList.add('show');
+      startHomeWaveAnimation();
+    } else {
+      if (hcHomeContent) hcHomeContent.classList.remove('hidden');
+      if (hcHomeWave) hcHomeWave.classList.remove('show');
+      stopHomeWaveAnimation();
+    }
+  }
+
+  var waveAnimFrame = null;
+  var waveCtx = hcWaveCanvas ? hcWaveCanvas.getContext('2d') : null;
+
+  function startStreamWaveAnimation() {
+    if (!hcWaveCanvas || !waveCtx) return;
+    if (waveAnimFrame) return;
+    var W = hcWaveCanvas.width;
+    var H = hcWaveCanvas.height;
+    var t = 0;
+
+    function draw() {
+      waveCtx.clearRect(0, 0, W, H);
+      t++;
+      var xrCanvas = window._xrCanvas;
+      var hasLive = xrCanvas && xrCanvas.analyser && xrCanvas.listening && xrCanvas.dataArr;
+      var amp = 0;
+      if (hasLive) {
+        xrCanvas.analyser.getByteTimeDomainData(xrCanvas.dataArr);
+        var rms = 0;
+        for (var i = 0; i < xrCanvas.dataArr.length; i++) {
+          var v = (xrCanvas.dataArr[i] / 128) - 1;
+          rms += v * v;
+        }
+        amp = Math.min(Math.sqrt(rms / xrCanvas.dataArr.length) * 7, 1);
+      }
+      var cy = H * 0.5;
+      for (var x = 0; x <= W; x++) {
+        var u = x / W;
+        var y = cy + Math.sin(u * Math.PI * 4 + t * 0.03) * H * 0.3 * (0.3 + amp * 0.7) * Math.sin(u * Math.PI);
+        waveCtx.fillStyle = 'rgba(167,139,250,' + (0.6 + amp * 0.4) + ')';
+        waveCtx.fillRect(x, y, 1.5, 1.5);
+      }
+      waveAnimFrame = requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
+  function stopStreamWaveAnimation() {
+    if (waveAnimFrame) {
+      cancelAnimationFrame(waveAnimFrame);
+      waveAnimFrame = null;
+    }
+  }
+
+  if (orbBtn) {
+    orbBtn.addEventListener('click', function () {
+      if (hiddenVoice) hiddenVoice.click();
+      orbBtn.classList.toggle('active');
+      var isActive = orbBtn.classList.contains('active');
+      setHomeMicActive(isActive);
+    });
+  }
+
+  if (playBtn) {
+    playBtn.addEventListener('click', function () {
+      if (hiddenStream) hiddenStream.click();
+      if (hcStreamPopup) hcStreamPopup.classList.add('show');
+      startStreamWaveAnimation();
+    });
+  }
+
+  if (msgBtn) {
+    msgBtn.addEventListener('click', function () {
+      if (hcMsgPopup) hcMsgPopup.classList.add('show');
+    });
+  }
+
+  if (streamOrbBtn) {
+    streamOrbBtn.addEventListener('click', function () {
+      if (hiddenVoice) hiddenVoice.click();
+      streamOrbBtn.classList.toggle('active');
+      if (orbBtn) orbBtn.classList.toggle('active');
+      var isActive = streamOrbBtn.classList.contains('active');
+      setHomeMicActive(isActive);
+    });
+  }
+
+  if (streamPlayBtn) {
+    streamPlayBtn.addEventListener('click', function () {
+      if (hiddenStream) hiddenStream.click();
+      if (hcStreamPopup) hcStreamPopup.classList.remove('show');
+      stopStreamWaveAnimation();
+    });
+  }
+
+  if (streamMsgBtn) {
+    streamMsgBtn.addEventListener('click', function () {
+      if (hcStreamPopup) hcStreamPopup.classList.remove('show');
+      stopStreamWaveAnimation();
+      if (hcMsgPopup) hcMsgPopup.classList.add('show');
+    });
+  }
+
+  if (msgOrbBtn) {
+    msgOrbBtn.addEventListener('click', function () {
+      if (hiddenVoice) hiddenVoice.click();
+      if (orbBtn) orbBtn.classList.toggle('active');
+      var isActive = orbBtn && orbBtn.classList.contains('active');
+      setHomeMicActive(isActive);
+    });
+  }
+
+  if (msgPlayBtn) {
+    msgPlayBtn.addEventListener('click', function () {
+      if (hcMsgPopup) hcMsgPopup.classList.remove('show');
+      if (hiddenStream) hiddenStream.click();
+      if (hcStreamPopup) hcStreamPopup.classList.add('show');
+      startStreamWaveAnimation();
+    });
+  }
+
+  if (msgMsgBtn) {
+    msgMsgBtn.addEventListener('click', function () {
+      if (hcMsgPopup) hcMsgPopup.classList.remove('show');
+    });
+  }
+
+  if (hcProfileToggle) {
+    hcProfileToggle.addEventListener('click', function () {
+      if (hcProfilePopup) hcProfilePopup.classList.toggle('show');
+      if (hcPopupOverlay) hcPopupOverlay.classList.toggle('show');
+    });
+  }
+
+  if (hcPopupOverlay) {
+    hcPopupOverlay.addEventListener('click', function () {
+      if (hcProfilePopup) hcProfilePopup.classList.remove('show');
+      if (hcPopupOverlay) hcPopupOverlay.classList.remove('show');
+    });
+  }
+
+  if (hcPopupConnect) {
+    hcPopupConnect.addEventListener('click', function () {
+      if (hiddenConnect) hiddenConnect.click();
+    });
+  }
+
+  if (hcStreamMuteBtn) {
+    hcStreamMuteBtn.addEventListener('click', function () {
+      var hiddenMute = document.getElementById('btnMute');
+      if (hiddenMute) hiddenMute.click();
+      hcStreamMuteBtn.classList.toggle('active');
+      hcStreamMuteBtn.textContent = hcStreamMuteBtn.classList.contains('active') ? 'Unmute' : 'Mute';
+    });
+  }
+
+  if (hcStreamHideBtn) {
+    hcStreamHideBtn.addEventListener('click', function () {
+      var hiddenVideo = document.getElementById('btnVideo');
+      if (hiddenVideo) hiddenVideo.click();
+      hcStreamHideBtn.classList.toggle('active');
+      hcStreamHideBtn.textContent = hcStreamHideBtn.classList.contains('active') ? 'Show' : 'Hide';
+    });
+  }
+
+  if (hcStreamPauseBtn) {
+    hcStreamPauseBtn.addEventListener('click', function () {
+      hcStreamPauseBtn.classList.toggle('active');
+      hcStreamPauseBtn.textContent = hcStreamPauseBtn.classList.contains('active') ? 'Resume' : 'Pause';
+    });
+  }
+
+  if (hcMsgSendBtn && hcMsgInput) {
+    hcMsgSendBtn.addEventListener('click', function () {
+      var text = (hcMsgInput.value || '').trim();
+      if (!text) return;
+      var hiddenMsgInput = document.getElementById('msgInput');
+      var hiddenSend = document.getElementById('btnSend');
+      if (hiddenMsgInput) hiddenMsgInput.value = text;
+      if (hiddenSend) hiddenSend.click();
+      hcMsgInput.value = '';
+    });
+
+    hcMsgInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        hcMsgSendBtn.click();
+      }
+    });
+  }
+
+  function syncDoctorInfo() {
+    try {
+      var xrId = window.XR_DEVICE_ID || '';
+      var xrDisplay = document.getElementById('xrIdDisplay');
+      var displayName = (xrDisplay && xrDisplay.value) || xrId || '';
+
+      if (hcDoctorName) hcDoctorName.textContent = displayName;
+      if (hcStreamDoctorName) hcStreamDoctorName.textContent = displayName;
+      if (hcMsgDoctorName) hcMsgDoctorName.textContent = displayName;
+      if (hcPopupName) hcPopupName.textContent = displayName || 'Doctor';
+
+      var statusEl = document.getElementById('status');
+      var isConnected = statusEl && statusEl.textContent.indexOf('Connected') > -1 && statusEl.textContent.indexOf('Disconnected') === -1;
+
+      if (hcProfileCircle) hcProfileCircle.classList.toggle('disconnected', !isConnected);
+      if (hcStreamProfileCircle) hcStreamProfileCircle.classList.toggle('disconnected', !isConnected);
+      if (hcMsgProfileCircle) hcMsgProfileCircle.classList.toggle('disconnected', !isConnected);
+
+      if (hcPopupConnect) {
+        if (isConnected) {
+          hcPopupConnect.textContent = 'Disconnect';
+          hcPopupConnect.classList.add('connected');
         } else {
-            maybeRegisterSW();
+          hcPopupConnect.textContent = 'Connect';
+          hcPopupConnect.classList.remove('connected');
         }
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const btn = document.querySelector('[data-install]');
-            if (btn) btn.style.display = 'inline-flex';
-        });
-        document.querySelector('[data-install]')?.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            await deferredPrompt.userChoice;
-            deferredPrompt = null;
-        });
-    </script>
+      }
 
-    <script>
-        (function () {
-            function handleXrLogout() {
-                console.log('[DEVICE] Platform logout detected, closing tab');
-                try { window.close(); } catch (e) { }
-                setTimeout(function () { window.location.href = '/platform'; }, 300);
-            }
-            try {
-                if (typeof BroadcastChannel !== 'undefined') {
-                    var ch = new BroadcastChannel('xr_platform_auth');
-                    ch.onmessage = function (e) {
-                        if (e.data && e.data.type === 'xr_logout') handleXrLogout();
-                    };
-                } else {
-                    window.addEventListener('storage', function (e) {
-                        if (e.key === 'xr_logout_signal') handleXrLogout();
-                    });
-                }
-            } catch (err) {
-                console.warn('[DEVICE] Logout listener setup failed:', err);
-            }
-        })();
-    </script>
-
-    <script>
-        var logoutBtn = document.getElementById('logoutBtn');
-        var hcPopupLogout = document.getElementById('hcPopupLogout');
-
-        function doLogout() {
-            (async function () {
-                try {
-                    console.log('[DEVICE] Manual logout initiated');
-                    try {
-                        sessionStorage.removeItem('XR_DEVICE_LAST_XR_ID_UI');
-                        sessionStorage.removeItem('xr-device-id');
-                    } catch (e) { }
-                    var response = await fetch('/api/platform/logout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include'
-                    });
-                    var data = await response.json();
-                    history.replaceState(null, '', '/platform');
-                    window.location.replace('/platform');
-                } catch (err) {
-                    console.error('[DEVICE] Logout error:', err);
-                    try {
-                        sessionStorage.removeItem('XR_DEVICE_LAST_XR_ID_UI');
-                        sessionStorage.removeItem('xr-device-id');
-                    } catch (e) { }
-                    history.replaceState(null, '', '/platform');
-                    window.location.replace('/platform');
-                }
-            })();
+      var peerStatusEl = document.getElementById('peerStatusText');
+      if (hcPopupScribeName && peerStatusEl) {
+        var peerText = peerStatusEl.textContent || '';
+        var scribeName = peerText.replace(' is Online', '').replace(' is Offline', '').trim();
+        if (scribeName && scribeName !== 'Peer') {
+          hcPopupScribeName.textContent = scribeName;
+          var isOnline = peerText.indexOf('Online') > -1;
+          if (hcPopupScribeBadge) {
+            hcPopupScribeBadge.textContent = isOnline ? 'Online' : 'Offline';
+            hcPopupScribeBadge.className = 'status-badge ' + (isOnline ? 'online' : 'offline');
+          }
         }
+      }
+    } catch (e) {}
+  }
 
-        if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
-        if (hcPopupLogout) hcPopupLogout.addEventListener('click', doLogout);
-    </script>
+  setInterval(syncDoctorInfo, 1000);
+  setTimeout(syncDoctorInfo, 500);
 
-    <script>
-        (function () {
-            fetch('/api/platform/me', {
-                method: 'GET',
-                credentials: 'include',
-                cache: 'no-store',
-                headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
-            }).then(function (res) {
-                if (res.status === 401 || res.status === 403) {
-                    console.log('[DEVICE] Not authenticated, redirecting to login');
-                    history.replaceState(null, '', '/platform');
-                    window.location.replace('/platform');
-                }
-            }).catch(function () {
-                console.warn('[DEVICE] Session check failed, redirecting to login');
-                history.replaceState(null, '', '/platform');
-                window.location.replace('/platform');
-            });
-        })();
-    </script>
+  function syncTranscripts() {
+    try {
+      var hiddenMsgList = document.getElementById('msgList');
+      if (!hiddenMsgList) return;
 
-</body>
+      var items = hiddenMsgList.querySelectorAll('.msg');
+      if (!items || items.length === 0) return;
 
-</html>
+      var last = items[items.length - 1];
+      var text = last ? last.textContent : '';
+
+      if (hcTranscriptCurrent && text) {
+        var parts = text.split(':');
+        hcTranscriptCurrent.textContent = parts.length > 1 ? parts.slice(1).join(':').trim() : text;
+      }
+
+      if (hcSoloTranscriptCurrent && text) {
+        var parts2 = text.split(':');
+        hcSoloTranscriptCurrent.textContent = parts2.length > 1 ? parts2.slice(1).join(':').trim() : text;
+      }
+
+      if (items.length >= 2) {
+        var prev = items[items.length - 2];
+        var prevText = prev ? prev.textContent : '';
+        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevText;
+        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevText;
+      }
+
+      if (hcRecentMsgContent) {
+        hcRecentMsgContent.innerHTML = '';
+        var count = Math.min(items.length, 5);
+        for (var i = items.length - 1; i >= items.length - count && i >= 0; i--) {
+          var item = items[i];
+          var div = document.createElement('div');
+          div.className = 'hc-msg-item';
+          div.innerHTML = '<div class="hc-msg-text">' + (item.textContent || '') + '</div>';
+          hcRecentMsgContent.appendChild(div);
+        }
+      }
+    } catch (e) {}
+  }
+
+  setInterval(syncTranscripts, 800);
+})();
