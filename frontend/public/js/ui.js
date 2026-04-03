@@ -368,7 +368,7 @@ function startAudioTimeout() {
 
 
         notifyCockpitPlaybackComplete();
-        syslog('Audio timeout - please regenerate');
+        msg('System', '⚠️ Audio timeout - please regenerate');
     }, AUDIO_TIMEOUT_MS);
 }
 
@@ -413,7 +413,7 @@ function toggleAudioPlayback() {
             console.log('▶️ [AUDIO] Resuming...');
         }).catch(err => {
             console.error('[AUDIO] Play error:', err);
-            syslog('Failed to play audio: ' + err.message);
+            msg('System', '⚠️ Failed to play audio: ' + err.message);
         });
     }
 }
@@ -550,32 +550,14 @@ function scheduleAutoReload(reason = 'unknown') {
 }
 
 
-function syslog(text) {
-    console.log('[SYS]', text);
-}
-
-function sysmsg(text) {
-    console.log('[SYS]', text);
-    const m = new Message({ sender: 'System', text, timestamp: nowIso(), xrId: ANDROID_XR_ID, urgent: false, isSystem: true });
-    appendMessage(elMsgList, m);
-    elMsgList.scrollTop = elMsgList.scrollHeight;
-    try {
-        const N = 200;
-        persistedState.messages.push({ sender: 'System', text, timestamp: m.timestamp, xrId: ANDROID_XR_ID, urgent: false, isSystem: true });
-        if (persistedState.messages.length > N) {
-            persistedState.messages = persistedState.messages.slice(-N);
-        }
-        saveState();
-    } catch { }
-}
-
 function msg(sender, text) {
     const m = new Message({ sender, text, timestamp: nowIso(), xrId: ANDROID_XR_ID, urgent: false });
     appendMessage(elMsgList, m);
     elMsgList.scrollTop = elMsgList.scrollHeight;
 
+    // ⬇️ add this block
     try {
-        const N = 200;
+        const N = 200; // cap to avoid storage bloat
         persistedState.messages.push({ sender, text, timestamp: m.timestamp, xrId: ANDROID_XR_ID, urgent: false });
         if (persistedState.messages.length > N) {
             persistedState.messages = persistedState.messages.slice(-N);
@@ -618,19 +600,23 @@ function applyMute(wantMuted) {
     const s = ensureStreamer();
     try {
         if (wantMuted) {
-            s.mute();
+            s.mute();           // disable audio tracks (do not stop)
             micMuted = true;
+
+            // ✅ add these two lines right after setting micMuted = true
             persistedState.micMuted = micMuted;
             saveState();
             startVoiceRecognition();
-            syslog('Microphone muted.');
+            msg('System', 'Microphone muted.');
         } else {
             stopVoiceRecognition();
-            Promise.resolve(s.unmute()).catch(() => syslog('Failed to unmute mic'));
+            // may need to reacquire mic; unmute() is async
+            Promise.resolve(s.unmute()).catch(() => msg('System', 'Failed to unmute mic'));
             micMuted = false;
+            // ✅ add these two lines right after setting micMuted = false
             persistedState.micMuted = micMuted;
             saveState();
-            syslog('Microphone unmuted.');
+            msg('System', 'Microphone unmuted.');
         }
     } catch { }
     setStatus(isServerConnected);
@@ -774,7 +760,7 @@ function createSignaling() {
         onConnected: () => {
             isServerConnected = true;
             setStatus(true);
-            syslog('Connected to server');
+            msg('System', 'Connected to server');
             console.log('[VISION DEVICE] ✅ Connected - Socket ID:', signaling?.socket?.id);
             console.log('[VISION DEVICE] ✅ onPlayAudio handler registered:', !!signaling.listener?.onPlayAudio);
             console.log('[VISION DEVICE] ✅ Socket play_audio listeners:', signaling?.socket?.listeners('play_audio')?.length || 0);
@@ -822,7 +808,7 @@ function createSignaling() {
             userWantsConnected = false; // prevent auto-reconnect after a manual disconnect
 
             setStatus(false);
-            syslog('Disconnected from server');
+            msg('System', 'Disconnected from server');
 
             telemetry?.stop(); telemetry = null;
             stopBatteryTicker();
@@ -830,7 +816,7 @@ function createSignaling() {
             if (streamActive) {
                 streamActive = false;
                 streamer?.stopStreaming().catch(() => { });
-                syslog('Stream stopped.');
+                msg('System', 'Stream stopped.');
             }
 
             // Ensure camera is off even if we weren't "streaming"
@@ -862,9 +848,9 @@ function createSignaling() {
             signaling.currentDesktopId = other || null;
 
             if (other) {
-                syslog(`Paired with ${displayNameFor(other, null)}.`);
+                msg('System', `🎯 Paired with ${displayNameFor(other, null)}.`);
             } else {
-                syslog(`Room joined.`);
+                msg('System', `🎯 Room joined.`);
             }
 
         },
@@ -894,7 +880,7 @@ function createSignaling() {
                 ensureStreamer();
                 const to = pairedDesktopId || signaling?.currentDesktopId || DEFAULT_DESKTOP_ID;
                 if (!to) {
-                    syslog('Not paired yet (no desktop). Wait for room_joined.');
+                    msg('System', '⚠️ Not paired yet (no desktop). Wait for room_joined.');
                     return;
                 }
 
@@ -922,7 +908,7 @@ function createSignaling() {
 
                 if (!audioBase64) {
                     console.error('❌ [VISION DEVICE] NOT RECEIVED - No audio data in payload');
-                    syslog('No audio data in payload');
+                    msg('System', '⚠️ No audio data');
                     return;
                 }
 
@@ -1022,12 +1008,12 @@ function createSignaling() {
 
                 // Autoplay immediately
                 _startSource(0);
-                syslog('Playing summary audio');
+                msg('System', 'Playing summary audio');
                 console.log('✅ [VISION DEVICE] Playing audio via AudioContext - SUCCESS');
 
             } catch (err) {
                 console.error('[AUDIO] Error processing audio:', err);
-                syslog('Audio playback error: ' + err.message);
+                msg('System', '⚠️ Audio playback error: ' + err.message);
             }
         },
 
@@ -1038,18 +1024,18 @@ function createSignaling() {
             hadDesktops = connectedDesktops.length > 0;
 
             if (!hadBefore && hadDesktops)
-                syslog("A desktop connected.");
+                msg('System', "A desktop connected! Tap 'Start Stream' to begin streaming.");
 
             const shown = (pairedDesktopId || DEFAULT_DESKTOP_ID);
             if (isServerConnected && shown && connectedDesktops.map(x => x.toUpperCase()).includes(shown.toUpperCase()) && !hadBefore) {
-                syslog(`${displayNameFor(shown, null)} is online.`);
+                msg('System', `${displayNameFor(shown, null)} is online.`);
             }
 
             if (!hadDesktops && streamActive) {
                 streamActive = false;
                 streamer?.stopStreaming().catch(() => { });
                 setStatus(isServerConnected);
-                syslog('All desktops disconnected. Stopped streaming.');
+                msg('System', 'All desktops disconnected. Stopped streaming.');
             }
         },
 
@@ -1060,16 +1046,18 @@ function createSignaling() {
                 const id = (payload?.xrId || '').toUpperCase();
                 const expected = (pairedDesktopId || DEFAULT_DESKTOP_ID).toUpperCase();
                 if (id === expected) {
-                    syslog(`${displayNameFor(expected, null)} left the room.`);
+                    msg('System', `${displayNameFor(expected, null)} left the room.`);
                     connectedDesktops = connectedDesktops.filter(x => x.toUpperCase() !== expected);
 
+                    // ✅ FIX: Update peer status when peer leaves
                     updatePeerStatus();
 
                     if (streamActive) {
+
                         streamActive = false;
                         streamer?.stopStreaming().catch(() => { });
                         setStatus(isServerConnected);
-                        syslog('Stream stopped (desktop disconnected).');
+                        msg('System', 'Stream stopped (desktop disconnected).');
                     }
                 }
                 return;
@@ -1077,16 +1065,17 @@ function createSignaling() {
 
             if (event === 'desktop_disconnected') {
                 const id = (payload?.xrId || DEFAULT_DESKTOP_ID).toUpperCase();
-                syslog(`${displayNameFor(id, null)} disconnected.`);
+                msg('System', `${displayNameFor(id, null)} disconnected.`);
                 connectedDesktops = connectedDesktops.filter(x => x.toUpperCase() !== id);
 
+                // ✅ FIX: Update peer status when desktop disconnects
                 updatePeerStatus();
 
                 if (streamActive) {
                     streamActive = false;
                     streamer?.stopStreaming().catch(() => { });
                     setStatus(isServerConnected);
-                    syslog('Stream stopped (desktop disconnected).');
+                    msg('System', 'Stream stopped (desktop disconnected).');
                 }
                 return;
             }
@@ -1158,7 +1147,7 @@ async function handleConnectDisconnect() {
         // ✅ persist disconnect intent
         persistedState.userWantsConnected = false;
         saveState();
-        syslog('Disconnecting…');
+        msg('System', 'Disconnecting…');
 
         // stop stream first so peers close cleanly
         try {
@@ -1221,7 +1210,7 @@ async function handleConnectDisconnect() {
         const normalized = normalizeXrId(raw);
 
         if (!normalized) {
-            syslog('Please enter your XR Device ID (e.g. 1234) before connecting.');
+            msg('System', 'Please enter your XR Device ID (e.g. 1234) before connecting.');
             elDeviceXrIdInput.focus();
             return;
         }
@@ -1273,14 +1262,14 @@ async function handleConnectDisconnect() {
         clearLegacyLocalXrId();
 
 
-        sysmsg('Connected as XR Device.');
+        msg('System', 'Connected as XR Device.');
     }
 
     // Not connected → connect
     userWantsConnected = true;
     persistedState.userWantsConnected = true;
     saveState();
-    syslog('Connecting…');
+    msg('System', 'Connecting…');
     createSignaling();
     ensureStreamer();
     // bind preview element
@@ -1291,8 +1280,9 @@ elBtnConnect.addEventListener('click', handleConnectDisconnect);
 
 
 elBtnStream.addEventListener('click', async () => {
-    if (!isServerConnected) { syslog('Not connected'); return; }
+    if (!isServerConnected) { msg('System', 'Not connected'); return; }
 
+    // 🔒 READ-only guard for XR Device
     if (!hasDeviceWritePermission()) {
         notifyReadOnlyDevice();
         return;
@@ -1302,7 +1292,7 @@ elBtnStream.addEventListener('click', async () => {
         await ensureStreamer().stopStreaming();
         micMuted = true;
         setStatus(true);
-        syslog('Stream stopped.');
+        msg('System', 'Stream stopped.');
 
         // Tell the Dock to blank out *now* (no waiting for ICE/TURN timeouts)
         try {
@@ -1325,14 +1315,14 @@ elBtnStream.addEventListener('click', async () => {
         }
 
     } else {
-        if (connectedDesktops.length === 0) { syslog('No desktops available for streaming.'); return; }
-        await signaling?.waitUntilConnected?.();
+        if (connectedDesktops.length === 0) { msg('System', 'No desktops available for streaming.'); return; }
+        await signaling?.waitUntilConnected?.(); // ensure signaling is live
         streamActive = true;
         await ensureStreamer().startStreaming(connectedDesktops);
         micMuted = true;
         ensureStreamer().mute();
         setStatus(true);
-        syslog("Stream started (muted by default).");
+        msg('System', "Stream started (muted by default). Say 'unmute' to unmute.");
 
         // // Immediately push an SDP offer to the Dock (device is the offerer)
         // ensureStreamer();
@@ -1361,18 +1351,21 @@ elBtnMute.addEventListener('click', async () => {
         return;
     }
     if (!isServerConnected || !streamActive) {
-        syslog('Stream not active');
+        msg('System', 'Stream not active');
         return;
     }
 
+    // Decide desired state from UI's own source of truth
     const wantMuted = !micMuted;
     const command = wantMuted ? 'mute' : 'unmute';
 
+    // 1) Apply locally immediately (Android parity)
     applyMute(wantMuted);
 
+    // 2) Notify ONLY paired desktop
     const targetId = pairedDesktopId;
     if (!targetId) {
-        syslog('Not paired yet. Wait for room_joined.');
+        msg('System', '⚠️ Not paired yet. Wait for room_joined.');
         return;
     }
     emitSafe('control', { from: ANDROID_XR_ID, to: targetId, command, action: command });
@@ -1387,8 +1380,9 @@ elBtnVideo.addEventListener('click', () => {
         notifyReadOnlyDevice();
         return;
     }
-    if (!isServerConnected || !streamActive) { syslog('Stream not active'); return; }
+    if (!isServerConnected || !streamActive) { msg('System', 'Stream not active'); return; }
 
+    // Toggle local state + choose command
     let cmd;
     if (videoVisible) {
         videoVisible = false;
@@ -1400,9 +1394,10 @@ elBtnVideo.addEventListener('click', () => {
         cmd = 'show_video';
     }
 
+    // ✅ Tell ONLY paired dock (Option B strict)
     const targetId = pairedDesktopId;
     if (!targetId) {
-        syslog('Not paired yet. Wait for room_joined.');
+        msg('System', '⚠️ Not paired yet. Wait for room_joined.');
         setStatus(true);
         return;
     }
@@ -1485,8 +1480,9 @@ function setupSR() {
                 }, 300);
             }
         } else if (code === 'not-allowed' || code === 'service-not-allowed') {
+            // Permission denied - stop listening
             console.error('[VoiceRec] Microphone permission denied');
-            syslog('Microphone permission denied. Please grant access in settings.');
+            msg('System', '⚠️ Microphone permission denied. Please grant access in settings.');
             isListening = false;
             if (orbUI) orbUI.syncVoiceState(false);
         } else {
@@ -1512,7 +1508,7 @@ function setupSR() {
 }
 function startVoiceRecognition() {
     if (!setupSR()) {
-        syslog('Voice API not available in this browser');
+        msg('System', 'Voice API not available in this browser');
         console.error('[VoiceRec] SpeechRecognition API not available');
         return;
     }
@@ -1526,15 +1522,16 @@ function startVoiceRecognition() {
     micActiveSince = Date.now();
     try {
         rec.start();
-        syslog('Voice recognition started');
+        msg('System', 'Voice recognition started');
         console.log('[VoiceRec] Started successfully');
     } catch (e) {
         console.error('[VoiceRec] Failed to start:', e.message);
+        // If it's already started error, that's OK
         if (e.message && e.message.includes('already started')) {
             console.log('[VoiceRec] Already started, continuing...');
-            syslog('Voice recognition active');
+            msg('System', 'Voice recognition active');
         } else {
-            syslog('Failed to start voice: ' + e.message);
+            msg('System', 'Failed to start voice: ' + e.message);
             isListening = false;
             if (orbUI) orbUI.syncVoiceState(false);
         }
@@ -1556,11 +1553,11 @@ function stopVoiceRecognition() {
             console.log('[VoiceRec] Stopped successfully');
         }
         rec = null;
-        syslog('Voice recognition stopped');
+        msg('System', 'Voice recognition stopped');
     } catch (e) {
         console.warn('[VoiceRec] Error stopping:', e.message);
         rec = null;
-        syslog('Voice recognition stopped');
+        msg('System', 'Voice recognition stopped');
     }
     if (recordingActive) finalizeRecordingNote();
     setStatus(isServerConnected);
@@ -1585,7 +1582,7 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Start Stream');
             elBtnStream.click();
         } else {
-            syslog('Stream already active.');
+            msg('Voice', 'Stream already active.');
         }
         return;
     }
@@ -1594,14 +1591,14 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Stop Stream');
             elBtnStream.click();
         } else {
-            syslog('Stream not active.');
+            msg('Voice', 'Stream not active.');
         }
         return;
     }
 
     // Check goodbye commands (but not if it's part of "stop stream")
     if (/\b(bye|goodbye|thank you|thanks|sleep|shut up)\b/.test(c)) {
-        syslog('Goodbye!');
+        msg('Voice', 'Goodbye!');
         if (orbUI) orbUI.updateResponse('Goodbye!', false);
         stopVoiceRecognition();
         return;
@@ -1619,11 +1616,11 @@ function processVoiceCommand(cmd) {
     }
 
     if (/\bdisconnect\b/.test(c)) {
-        if (isServerConnected) elBtnConnect.click(); else syslog('Already disconnected.');
+        if (isServerConnected) elBtnConnect.click(); else msg('Voice', 'Already disconnected.');
         return;
     }
     if (/\bconnect\b/.test(c)) {
-        if (!isServerConnected) elBtnConnect.click(); else syslog('Already connected.');
+        if (!isServerConnected) elBtnConnect.click(); else msg('Voice', 'Already connected.');
         return;
     }
 
@@ -1634,7 +1631,7 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Mute');
             elBtnMute.click();
         } else {
-            syslog('Already muted.');
+            msg('Voice', 'Already muted.');
         }
         return;
     }
@@ -1644,7 +1641,7 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Unmute');
             elBtnMute.click();
         } else {
-            syslog('Already unmuted.');
+            msg('Voice', 'Already unmuted.');
         }
         return;
     }
@@ -1655,7 +1652,7 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Hide Video');
             elBtnVideo.click();
         } else {
-            syslog('Video already hidden.');
+            msg('Voice', 'Video already hidden.');
         }
         return;
     }
@@ -1664,7 +1661,7 @@ function processVoiceCommand(cmd) {
             console.log('[Voice] Triggering: Show Video');
             elBtnVideo.click();
         } else {
-            syslog('Video already shown.');
+            msg('Voice', 'Video already shown.');
         }
         return;
     }
@@ -1688,12 +1685,12 @@ function processVoiceCommand(cmd) {
             const _btn = document.getElementById('btnAudio');
             console.log('[AUDIO][TOGGLE_TRIGGERED]', { source: 'voice-pause', hasBtn: !!_btn });
             if (_btn) { _btn.click(); } else { toggleAudioPlayback(); }
-            syslog('Pausing audio');
+            msg('Voice', 'Pausing audio');
             if (orbUI) orbUI.updateResponse('Pausing audio', false);
         } else if (!currentAudio) {
-            syslog('No audio to pause');
+            msg('Voice', 'No audio to pause');
         } else {
-            syslog('Audio already paused');
+            msg('Voice', 'Audio already paused');
         }
         return;
     }
@@ -1710,20 +1707,20 @@ function processVoiceCommand(cmd) {
         const pausedByMic = micActive && (Date.now() - micActiveSince) < micWarmupMs;
         if (currentAudio && currentAudio.paused && !currentAudio.ended && !pausedByMic) {
             currentAudio.play().then(() => {
-                syslog('Resuming audio');
+                msg('Voice', 'Resuming audio');
                 if (orbUI) orbUI.updateResponse('Resuming audio', false);
             }).catch(err => {
                 console.error('[AUDIO] Voice play error:', err);
-                syslog('Failed to play audio: ' + err.message);
+                msg('System', '⚠️ Failed to play audio: ' + err.message);
             });
         } else if (!currentAudio) {
-            syslog('No audio to play');
+            msg('Voice', 'No audio to play');
         } else if (currentAudio.ended) {
-            syslog('Audio has finished');
+            msg('Voice', 'Audio has finished');
         } else if (pausedByMic) {
-            syslog('Audio paused by mic — ignoring play command');
+            msg('Voice', 'Audio paused by mic — ignoring play command');
         } else {
-            syslog('Audio already playing');
+            msg('Voice', 'Audio already playing');
         }
         return;
     }
@@ -1731,7 +1728,7 @@ function processVoiceCommand(cmd) {
 
 
 
-    syslog(`Unrecognized command: ${cmd}`);
+    msg('Voice', `Unrecognized command: ${cmd}`);
 }
 
 
@@ -1769,7 +1766,7 @@ function onStartRecordingNote() {
     noteBuffer = '';
     conversationBuffer = '';
     if (!isListening) startVoiceRecognition();
-    syslog('Note recording started (say "create" to stop).');
+    msg('System', 'Note recording started (say "create" to stop).');
 }
 function onStopRecordingNote() {
     if (!recordingActive) return;
@@ -1785,11 +1782,11 @@ function finalizeRecordingNote() {
     }
 
     const finalText = noteBuffer.trim();
-    syslog(`Note saved (${finalText.length} chars).`);
+    msg('System', `Note saved to console (${finalText.length} chars).`);
 
     const targetId = pairedDesktopId;
     if (!targetId) {
-        syslog('Not paired yet. Wait for room_joined.');
+        msg('System', '⚠️ Not paired yet. Wait for room_joined.');
     } else {
         emitSafe('control', {
             from: ANDROID_XR_ID,
@@ -1818,8 +1815,8 @@ async function sendTranscript(text, isFinal) {
         notifyReadOnlyDevice();
         return;
     }
-    if (!isServerConnected) { syslog('Not connected; transcript not sent.'); return; }
-    if (connectedDesktops.length === 0) { syslog('No desktops connected; transcript not sent.'); return; }
+    if (!isServerConnected) { msg('System', 'Not connected; transcript not sent.'); return; }
+    if (connectedDesktops.length === 0) { msg('System', 'No desktops connected; transcript not sent.'); return; }
     await signaling?.waitUntilConnected?.().catch(() => { });    // <-- INSERT THIS
 
     const ts = nowIso();
@@ -1849,7 +1846,7 @@ function sendControlCommand(command) {
     const targetId = pairedDesktopId;
 
     if (!targetId) {
-        syslog('Not paired yet. Wait for room_joined before sending voice commands.');
+        msg('System', '⚠️ Not paired yet. Wait for room_joined before sending voice commands.');
         return;
     }
 
@@ -1888,7 +1885,7 @@ elBtnSend.addEventListener('click', () => {
     if (!text) return;
 
     if (connectedDesktops.length === 0) {
-        syslog('Message not sent - no desktops connected');
+        msg('System', 'Message not sent - no desktops connected');
         return;
     }
 
@@ -1897,16 +1894,13 @@ elBtnSend.addEventListener('click', () => {
     // ✅ Get real full name safely
     const myFullName = fullNameForXrId(ANDROID_XR_ID) || '';
 
-    const displaySender = myFullName || ANDROID_XR_ID || 'Me';
-    msg(displaySender, text);
-
     for (const targetId of connectedDesktops) {
         emitSafe('message', {
             type: 'message',
             text,
-            sender: myFullName,
-            xrId: ANDROID_XR_ID,
-            fullName: myFullName,
+            sender: myFullName,      // display identity
+            xrId: ANDROID_XR_ID,     // routing identity
+            fullName: myFullName,    // explicit name field
             timestamp,
             urgent,
             to: targetId,
@@ -1973,7 +1967,7 @@ try {
 }
 // reflect UI state
 setStatus(false);
-syslog("Disconnected. Tap 'Connect' or say 'connect' to join the server.");
+msg('System', "Disconnected. Tap 'Connect' or say 'connect' to join the server.");
 
 // Load XR Device permissions once and apply read-only UI if needed
 if (typeof window !== 'undefined') {

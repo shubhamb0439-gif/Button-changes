@@ -387,10 +387,6 @@
       if (hiddenMsgInput) hiddenMsgInput.value = text;
       if (hiddenSend) hiddenSend.click();
       hcMsgInput.value = '';
-      hcMsgInput.placeholder = 'Type your message.....';
-      replyingTo = null;
-      var indicator = document.querySelector('.hc-reply-indicator');
-      if (indicator) indicator.remove();
     });
 
     hcMsgInput.addEventListener('keypress', function (e) {
@@ -448,101 +444,18 @@
   setInterval(syncDoctorInfo, 1000);
   setTimeout(syncDoctorInfo, 500);
 
-  var replyingTo = null;
-
-  function escHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
   function parseMsgElement(el) {
-    var isSystem = el.dataset.isSystem === '1';
     var sender = '';
     var time = '';
     var text = '';
-
-    if (isSystem) {
-      var pillEl = el.querySelector('.msg-system-pill');
-      var sysTimeEl = el.querySelector('.msg-system-time');
-      if (pillEl) text = pillEl.textContent.trim();
-      if (sysTimeEl) time = sysTimeEl.textContent.trim();
-      sender = 'System';
-      return { sender: sender, time: time, text: text, isSystem: true };
-    }
-
     var senderEl = el.querySelector('.msg-header');
     var timeEl = el.querySelector('.msg-timestamp');
     var textEl = el.querySelector('.msg-text');
-    if (senderEl) {
-      var clone = senderEl.cloneNode(true);
-      var badge = clone.querySelector('.msg-badge-urgent');
-      if (badge) badge.remove();
-      sender = clone.textContent.trim();
-    }
+    if (senderEl) sender = senderEl.textContent.trim();
     if (timeEl) time = timeEl.textContent.trim();
     if (textEl) text = textEl.textContent.trim();
-    return { sender: sender, time: time, text: text, isSystem: false };
+    return { sender: sender, time: time, text: text };
   }
-
-  function buildChatBubble(parsed, idx) {
-    if (parsed.isSystem) {
-      var sysEl = document.createElement('div');
-      sysEl.className = 'hc-system-notification';
-      sysEl.innerHTML = '<span class="hc-system-pill">' + escHtml(parsed.text) + '</span>' +
-        (parsed.time ? '<div class="hc-system-time">' + escHtml(parsed.time) + '</div>' : '');
-      return sysEl;
-    }
-
-    var isMine = window.XR_DEVICE_ID && (
-      parsed.sender === window.XR_DEVICE_ID ||
-      parsed.sender === (window._myFullName || '') ||
-      parsed.sender === 'Me'
-    );
-    var bubble = document.createElement('div');
-    bubble.className = 'hc-chat-bubble ' + (isMine ? 'hc-chat-mine' : 'hc-chat-theirs');
-    bubble.dataset.idx = idx;
-
-    var inner = '';
-    if (!isMine && parsed.sender) {
-      inner += '<div class="hc-chat-sender">' + escHtml(parsed.sender) + '</div>';
-    }
-    inner += '<div class="hc-chat-text">' + escHtml(parsed.text) + '</div>';
-    inner += '<div class="hc-chat-meta">';
-    if (parsed.time) inner += '<span class="hc-chat-time">' + escHtml(parsed.time) + '</span>';
-    inner += '<button class="hc-chat-reply-btn" data-idx="' + idx + '">Reply</button>';
-    inner += '</div>';
-    bubble.innerHTML = inner;
-
-    var replyBtn = bubble.querySelector('.hc-chat-reply-btn');
-    if (replyBtn) {
-      replyBtn.addEventListener('click', function() {
-        var i = parseInt(this.getAttribute('data-idx'));
-        replyingTo = i;
-        if (hcMsgInput) {
-          hcMsgInput.focus();
-          hcMsgInput.placeholder = 'Replying to: ' + escHtml(parsed.text.slice(0, 40)) + (parsed.text.length > 40 ? '...' : '');
-        }
-        var existing = document.querySelector('.hc-reply-indicator');
-        if (existing) existing.remove();
-        var indicator = document.createElement('div');
-        indicator.className = 'hc-reply-indicator';
-        indicator.innerHTML = '<span>Replying to <strong>' + escHtml(parsed.sender) + '</strong>: ' + escHtml(parsed.text.slice(0, 60)) + '</span><button class="hc-reply-cancel">×</button>';
-        var inputArea = document.querySelector('.hc-msg-input-area');
-        if (inputArea) inputArea.insertAdjacentElement('beforebegin', indicator);
-        var cancelBtn = indicator.querySelector('.hc-reply-cancel');
-        if (cancelBtn) {
-          cancelBtn.addEventListener('click', function() {
-            replyingTo = null;
-            indicator.remove();
-            if (hcMsgInput) hcMsgInput.placeholder = 'Type your message.....';
-          });
-        }
-      });
-    }
-
-    return bubble;
-  }
-
-  var lastRenderedCount = 0;
 
   function syncTranscripts() {
     try {
@@ -550,47 +463,42 @@
       if (!hiddenMsgList) return;
 
       var items = hiddenMsgList.querySelectorAll('.msg');
-
-      if (items.length === 0) {
-        if (hcRecentMsgContent) hcRecentMsgContent.innerHTML = '';
-        if (hcMsgHistoryContent) hcMsgHistoryContent.innerHTML = '';
-        lastRenderedCount = 0;
-        return;
-      }
+      if (!items || items.length === 0) return;
 
       var last = items[items.length - 1];
       var lastParsed = parseMsgElement(last);
 
-      if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = lastParsed.text;
-      if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = lastParsed.text;
+      if (hcTranscriptCurrent) {
+        hcTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
+      }
+
+      if (hcSoloTranscriptCurrent) {
+        hcSoloTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
+      }
 
       if (items.length >= 2) {
-        var prevParsed = parseMsgElement(items[items.length - 2]);
+        var prev = items[items.length - 2];
+        var prevParsed = parseMsgElement(prev);
         if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevParsed.text;
         if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevParsed.text;
       }
 
-      if (items.length === lastRenderedCount) return;
-      lastRenderedCount = items.length;
-
-      var RECENT_COUNT = 5;
-      var recentStart = Math.max(0, items.length - RECENT_COUNT);
-
       if (hcRecentMsgContent) {
         hcRecentMsgContent.innerHTML = '';
-        for (var i = recentStart; i < items.length; i++) {
+        var count = Math.min(items.length, 5);
+        for (var i = items.length - 1; i >= items.length - count && i >= 0; i--) {
           var parsed = parseMsgElement(items[i]);
-          hcRecentMsgContent.appendChild(buildChatBubble(parsed, i));
-        }
-      }
-
-      if (hcMsgHistoryContent) {
-        hcMsgHistoryContent.innerHTML = '';
-        if (recentStart > 0) {
-          for (var j = 0; j < recentStart; j++) {
-            var hParsed = parseMsgElement(items[j]);
-            hcMsgHistoryContent.appendChild(buildChatBubble(hParsed, j));
+          var div = document.createElement('div');
+          div.className = 'hc-msg-item';
+          var html = '';
+          if (parsed.sender) {
+            html += '<div class="hc-msg-item-header"><span class="hc-msg-sender">' + parsed.sender + '</span>';
+            if (parsed.time) html += '<span class="hc-msg-time">' + parsed.time + '</span>';
+            html += '</div>';
           }
+          if (parsed.text) html += '<div class="hc-msg-text">' + parsed.text + '</div>';
+          div.innerHTML = html;
+          hcRecentMsgContent.appendChild(div);
         }
       }
     } catch (e) {}
