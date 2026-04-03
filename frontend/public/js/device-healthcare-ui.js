@@ -457,6 +457,45 @@
     return { sender: sender, time: time, text: text };
   }
 
+  var currentReplyTarget = null;
+
+  function isSystemMessage(parsed) {
+    var senderLower = (parsed.sender || '').toLowerCase().trim();
+    return senderLower === 'system' || senderLower === 'voice' || senderLower === '';
+  }
+
+  function makeReplyBtn(parsed) {
+    var btn = document.createElement('button');
+    btn.className = 'hc-msg-reply-btn';
+    btn.textContent = 'Reply';
+    btn.addEventListener('click', function () {
+      currentReplyTarget = parsed.sender;
+      if (hcMsgInput) {
+        hcMsgInput.focus();
+        hcMsgInput.placeholder = 'Replying to ' + parsed.sender + '...';
+      }
+    });
+    return btn;
+  }
+
+  function makeMsgItem(parsed) {
+    var div = document.createElement('div');
+    div.className = 'hc-msg-item';
+    var header = '<div class="hc-msg-item-header">';
+    header += '<span class="hc-msg-sender">' + parsed.sender + '</span>';
+    header += '</div>';
+    var body = '';
+    if (parsed.time) {
+      body += '<div class="hc-msg-time-stamp">' + parsed.time + '</div>';
+    }
+    if (parsed.text) {
+      body += '<div class="hc-msg-text">' + parsed.text + '</div>';
+    }
+    div.innerHTML = header + body;
+    div.appendChild(makeReplyBtn(parsed));
+    return div;
+  }
+
   function syncTranscripts() {
     try {
       var hiddenMsgList = document.getElementById('msgList');
@@ -465,40 +504,52 @@
       var items = hiddenMsgList.querySelectorAll('.msg');
       if (!items || items.length === 0) return;
 
-      var last = items[items.length - 1];
-      var lastParsed = parseMsgElement(last);
-
-      if (hcTranscriptCurrent) {
-        hcTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
+      var allParsed = [];
+      for (var k = 0; k < items.length; k++) {
+        allParsed.push(parseMsgElement(items[k]));
       }
 
-      if (hcSoloTranscriptCurrent) {
-        hcSoloTranscriptCurrent.textContent = lastParsed.text || lastParsed.sender;
+      var userMessages = allParsed.filter(function (p) { return !isSystemMessage(p); });
+
+      var lastUserMsg = userMessages.length > 0 ? userMessages[userMessages.length - 1] : (allParsed.length > 0 ? allParsed[allParsed.length - 1] : null);
+      if (lastUserMsg) {
+        if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = lastUserMsg.text || lastUserMsg.sender;
+        if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = lastUserMsg.text || lastUserMsg.sender;
       }
 
-      if (items.length >= 2) {
-        var prev = items[items.length - 2];
-        var prevParsed = parseMsgElement(prev);
-        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevParsed.text;
-        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevParsed.text;
+      if (userMessages.length >= 2) {
+        var prevUserMsg = userMessages[userMessages.length - 2];
+        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevUserMsg.text;
+        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevUserMsg.text;
       }
 
       if (hcRecentMsgContent) {
         hcRecentMsgContent.innerHTML = '';
-        var count = Math.min(items.length, 5);
-        for (var i = items.length - 1; i >= items.length - count && i >= 0; i--) {
-          var parsed = parseMsgElement(items[i]);
-          var div = document.createElement('div');
-          div.className = 'hc-msg-item';
-          var html = '';
-          if (parsed.sender) {
-            html += '<div class="hc-msg-item-header"><span class="hc-msg-sender">' + parsed.sender + '</span>';
-            if (parsed.time) html += '<span class="hc-msg-time">' + parsed.time + '</span>';
-            html += '</div>';
+        if (userMessages.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'hc-msg-empty';
+          empty.textContent = 'No messages yet';
+          hcRecentMsgContent.appendChild(empty);
+        } else {
+          var recentCount = Math.min(userMessages.length, 5);
+          for (var i = userMessages.length - 1; i >= userMessages.length - recentCount && i >= 0; i--) {
+            hcRecentMsgContent.appendChild(makeMsgItem(userMessages[i]));
           }
-          if (parsed.text) html += '<div class="hc-msg-text">' + parsed.text + '</div>';
-          div.innerHTML = html;
-          hcRecentMsgContent.appendChild(div);
+        }
+      }
+
+      if (hcMsgHistoryContent) {
+        hcMsgHistoryContent.innerHTML = '';
+        if (userMessages.length === 0) {
+          var emptyHist = document.createElement('div');
+          emptyHist.className = 'hc-msg-empty';
+          emptyHist.textContent = 'No message history';
+          hcMsgHistoryContent.appendChild(emptyHist);
+        } else {
+          for (var j = 0; j < userMessages.length; j++) {
+            hcMsgHistoryContent.appendChild(makeMsgItem(userMessages[j]));
+          }
+          hcMsgHistoryContent.scrollTop = hcMsgHistoryContent.scrollHeight;
         }
       }
     } catch (e) {}
