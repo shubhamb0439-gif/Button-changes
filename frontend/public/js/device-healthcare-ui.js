@@ -1,666 +1,394 @@
-(function () {
-  'use strict';
+<!doctype html>
+<html lang="en">
 
-  var profileToggle = document.getElementById('hcProfileToggle');
-  var profilePopup = document.getElementById('hcProfilePopup');
-  var popupOverlay = document.getElementById('hcPopupOverlay');
-  var popupConnect = document.getElementById('hcPopupConnect');
-  var profileCircle = document.getElementById('hcProfileCircle');
-  var doctorNameEl = document.getElementById('hcDoctorName');
-  var popupNameEl = document.getElementById('hcPopupName');
-  var popupScribeNameEl = document.getElementById('hcPopupScribeName');
-  var popupScribeBadgeEl = document.getElementById('hcPopupScribeBadge');
+<head>
+    <meta charset="utf-8" />
+    <title>XR Vision</title>
+    <meta name="viewport"
+        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+    <meta name="theme-color" content="#d8c6ec" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="/manifest.webmanifest">
 
-  var streamDoctorName = document.getElementById('hcStreamDoctorName');
-  var streamProfileCircle = document.getElementById('hcStreamProfileCircle');
-  var msgDoctorName = document.getElementById('hcMsgDoctorName');
-  var msgProfileCircle = document.getElementById('hcMsgProfileCircle');
+    <link rel="icon" href="/public/images/xr-logo-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/public/images/xr-logo-192.png" />
 
-  var homeContent = document.getElementById('hcHomeContent');
-  var bottomNav = document.getElementById('hcBottomNav');
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/public/css/device-healthcare.css" />
+</head>
 
-  var playBtn = document.getElementById('hcPlayBtn');
-  var orbBtn = document.getElementById('hcOrbBtn');
-  var msgBtn = document.getElementById('hcMsgBtn');
+<body>
+    <div class="shell" id="shell">
+        <canvas id="sc"></canvas>
 
-  var streamPopup = document.getElementById('hcStreamPopup');
-  var streamVideoWrap = document.getElementById('hcStreamVideoWrap');
-  var streamMuteBtn = document.getElementById('hcStreamMuteBtn');
-  var streamHideBtn = document.getElementById('hcStreamHideBtn');
-  var streamPauseBtn = document.getElementById('hcStreamPauseBtn');
-  var streamPlayBtn = document.getElementById('hcStreamPlayBtn');
-  var streamOrbBtn = document.getElementById('hcStreamOrbBtn');
-  var streamMsgBtn = document.getElementById('hcStreamMsgBtn');
+        <!-- ============ HEALTHCARE HEADER ============ -->
+        <div class="hc-header">
+            <div class="hc-logo">
+                <img src="/images/logo_1.png" alt="Logo" style="width: 48px; height: 48px; object-fit: contain;">
+            </div>
+            <div class="hc-profile-area" id="hcProfileToggle">
+                <span class="hc-doctor-name" id="hcDoctorName"></span>
+                <div class="hc-profile-circle disconnected" id="hcProfileCircle">
+                    <div class="status-dot"></div>
+                </div>
+            </div>
+        </div>
 
-  var msgPopup = document.getElementById('hcMsgPopup');
-  var msgPlayBtn = document.getElementById('hcMsgPlayBtn');
-  var msgOrbBtn = document.getElementById('hcMsgOrbBtn');
-  var msgMsgBtn = document.getElementById('hcMsgMsgBtn');
-  var hcMsgInput = document.getElementById('hcMsgInput');
-  var hcMsgSendBtn = document.getElementById('hcMsgSendBtn');
-  var hcRecentMsgContent = document.getElementById('hcRecentMsgContent');
-  var hcMsgHistoryContent = document.getElementById('hcMsgHistoryContent');
+        <!-- ============ PROFILE POPUP ============ -->
+        <div class="hc-popup-overlay" id="hcPopupOverlay"></div>
+        <div class="hc-profile-popup" id="hcProfilePopup">
+            <div class="hc-popup-name" id="hcPopupName">Doctor</div>
+            <div class="hc-popup-scribe" id="hcPopupScribe">
+                Assigned Scribe: <span id="hcPopupScribeName">--</span>
+                <span class="status-badge offline" id="hcPopupScribeBadge">Offline</span>
+            </div>
+            <button class="hc-popup-btn connect-btn" id="hcPopupConnect">Connect</button>
+            <button class="hc-popup-btn logout-btn" id="hcPopupLogout">Log out</button>
+        </div>
 
-  var hcWaveCanvas = document.getElementById('hcWaveCanvas');
-  var hcTranscriptCurrent = document.getElementById('hcTranscriptCurrent');
-  var hcTranscriptPrev = document.getElementById('hcTranscriptPrev');
-  var hcTranscriptNext = document.getElementById('hcTranscriptNext');
-  var hcSummaryDisplay = document.getElementById('hcSummaryDisplay');
-  var hcSummaryText = document.getElementById('hcSummaryText');
+        <!-- ============ STANDALONE TRANSCRIPT OVERLAY (shown when stream popup is closed) ============ -->
+        <div class="hc-solo-transcript" id="hcSoloTranscript">
+            <div class="hc-transcript-prev" id="hcSoloTranscriptPrev"></div>
+            <div class="hc-transcript-current" id="hcSoloTranscriptCurrent"></div>
+        </div>
 
-  var hiddenConnect = document.getElementById('btnConnect');
-  var hiddenStream = document.getElementById('btnStream');
-  var hiddenMute = document.getElementById('btnMute');
-  var hiddenVideo = document.getElementById('btnVideo');
-  var hiddenVoice = document.getElementById('btnVoice');
-  var hiddenSend = document.getElementById('btnSend');
-  var hiddenMsgInput = document.getElementById('msgInput');
-  var hiddenChkUrgent = document.getElementById('chkUrgent');
-  var hiddenMsgList = document.getElementById('msgList');
-  var hiddenPreview = document.getElementById('preview');
-  var hiddenBdot = document.getElementById('bdot');
-  var hiddenBtxt = document.getElementById('btxt');
-  var hiddenXrIdDisplay = document.getElementById('xrIdDisplay');
-  var peerStatusText = document.getElementById('peerStatusText');
+        <!-- ============ HOME: CENTER CONTENT ============ -->
+        <div class="hc-center-content" id="hcHomeContent">
+            <div class="hc-healthcare-logo">
+                <img src="/images/logo_1.png" alt="Healthcare Logo" style="width: 200px; height: 200px; object-fit: contain;">
+            </div>
+            <div class="hc-app-title"><strong>OG</strong> Clinical Assistant</div>
+        </div>
 
-  var transcriptLines = [];
-  var currentTranscriptIdx = 0;
+        <!-- ============ BOTTOM NAV (3 buttons) ============ -->
+        <div class="hc-bottom-nav" id="hcBottomNav">
+            <button class="hc-nav-btn play-btn" id="hcPlayBtn" title="Start Stream">
+                <img src="/public/images/play_button.png" alt="Play" class="btn-icon">
+            </button>
+            <button class="hc-nav-btn orb-btn" id="hcOrbBtn" title="Voice Command">
+                <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
+            </button>
+            <button class="hc-nav-btn msg-btn" id="hcMsgBtn" title="Messages">
+                <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
+            </button>
+        </div>
 
-  function closeAllPopups() {
-    if (profilePopup) profilePopup.classList.remove('show');
-    if (popupOverlay) popupOverlay.classList.remove('show');
-  }
+        <!-- ============ STREAM POPUP (FULLSCREEN) ============ -->
+        <div class="hc-stream-popup" id="hcStreamPopup">
+            <div class="hc-stream-video-wrap" id="hcStreamVideoWrap"></div>
+            <div class="hc-stream-overlay">
+                <div class="hc-stream-header">
+                    <div class="hc-logo">
+                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="24" cy="24" r="22" fill="#7c3aed" stroke="#5b21b6" stroke-width="1.5"/>
+                            <circle cx="24" cy="26" r="12" fill="#14b8a6"/>
+                            <rect x="20" y="20" width="8" height="12" rx="1" fill="#fff"/>
+                            <rect x="18" y="24" width="12" height="4" rx="1" fill="#fff"/>
+                            <path d="M14 16 Q24 8 34 16" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="14" cy="16" r="2.5" fill="#14b8a6"/>
+                        </svg>
+                    </div>
+                    <div class="hc-profile-area">
+                        <span class="hc-doctor-name" id="hcStreamDoctorName"></span>
+                        <div class="hc-profile-circle" id="hcStreamProfileCircle">
+                            <div class="status-dot"></div>
+                        </div>
+                    </div>
+                </div>
 
-  if (profileToggle) {
-    profileToggle.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var isOpen = profilePopup && profilePopup.classList.contains('show');
-      if (isOpen) {
-        closeAllPopups();
-      } else {
-        if (profilePopup) profilePopup.classList.add('show');
-        if (popupOverlay) popupOverlay.classList.add('show');
-      }
-    });
-  }
+                <div class="hc-stream-wave" id="hcStreamWave">
+                    <canvas id="hcWaveCanvas" width="280" height="100"></canvas>
+                </div>
 
-  if (popupOverlay) {
-    popupOverlay.addEventListener('click', closeAllPopups);
-  }
+                <div class="hc-stream-transcription" id="hcTranscription">
+                    <div class="hc-transcript-prev" id="hcTranscriptPrev"></div>
+                    <div class="hc-transcript-current" id="hcTranscriptCurrent"></div>
+                    <div class="hc-transcript-next" id="hcTranscriptNext"></div>
+                </div>
 
-  if (popupConnect) {
-    popupConnect.addEventListener('click', function () {
-      if (hiddenConnect) hiddenConnect.click();
-      closeAllPopups();
-    });
-  }
+                <div class="hc-summary-display" id="hcSummaryDisplay" style="display:none">
+                    <div class="hc-summary-text" id="hcSummaryText"></div>
+                </div>
 
-  function openStreamPopup() {
-    if (streamPopup) streamPopup.classList.add('show');
-    if (msgPopup) msgPopup.classList.remove('show');
-    if (soloTranscript) soloTranscript.classList.remove('show');
+                <div class="hc-stream-controls">
+                    <button class="hc-stream-ctrl-btn" id="hcStreamMuteBtn">Mute</button>
+                    <button class="hc-stream-ctrl-btn" id="hcStreamHideBtn">Hide</button>
+                    <button class="hc-stream-ctrl-btn" id="hcStreamPauseBtn">Pause</button>
+                </div>
 
-    if (hiddenPreview && streamVideoWrap) {
-      hiddenPreview.hidden = false;
-      hiddenPreview.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1);position:absolute;inset:0;';
-      streamVideoWrap.appendChild(hiddenPreview);
-    }
-    startStreamWaveAnimation();
-  }
+                <div class="hc-stream-bottom-nav">
+                    <button class="hc-nav-btn play-btn" id="hcStreamPlayBtn" title="Stop Stream">
+                        <img src="/public/images/pause_button.png" alt="Pause" class="btn-icon">
+                    </button>
+                    <button class="hc-nav-btn orb-btn" id="hcStreamOrbBtn" title="Voice Command">
+                        <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
+                    </button>
+                    <button class="hc-nav-btn msg-btn" id="hcStreamMsgBtn" title="Messages">
+                        <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
+                    </button>
+                </div>
+            </div>
+        </div>
 
-  function closeStreamPopup() {
-    if (streamPopup) streamPopup.classList.remove('show');
-    stopStreamWaveAnimation();
+        <!-- ============ MESSAGES POPUP ============ -->
+        <div class="hc-msg-popup" id="hcMsgPopup">
+            <div class="hc-msg-header">
+                <div class="hc-logo">
+                    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="24" cy="24" r="22" fill="#7c3aed" stroke="#5b21b6" stroke-width="1.5"/>
+                        <circle cx="24" cy="26" r="12" fill="#14b8a6"/>
+                        <rect x="20" y="20" width="8" height="12" rx="1" fill="#fff"/>
+                        <rect x="18" y="24" width="12" height="4" rx="1" fill="#fff"/>
+                        <path d="M14 16 Q24 8 34 16" stroke="#14b8a6" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                        <circle cx="14" cy="16" r="2.5" fill="#14b8a6"/>
+                    </svg>
+                </div>
+                <div class="hc-profile-area">
+                    <span class="hc-doctor-name" id="hcMsgDoctorName"></span>
+                    <div class="hc-profile-circle" id="hcMsgProfileCircle">
+                        <div class="status-dot"></div>
+                    </div>
+                </div>
+            </div>
 
-    if (hiddenPreview) {
-      hiddenPreview.hidden = true;
-      hiddenPreview.style.cssText = '';
-      var shell = document.getElementById('shell');
-      if (shell) shell.appendChild(hiddenPreview);
-    }
-  }
+            <div class="hc-msg-body" id="hcMsgBody">
+                <div class="hc-msg-section" id="hcRecentMsgSection">
+                    <div class="hc-msg-section-title">Recent Messages</div>
+                    <div id="hcRecentMsgContent"></div>
+                </div>
+                <div class="hc-msg-section" id="hcMsgHistorySection">
+                    <div class="hc-msg-section-title">Message History</div>
+                    <div id="hcMsgHistoryContent"></div>
+                </div>
+            </div>
 
-  function openMsgPopup() {
-    if (msgPopup) msgPopup.classList.add('show');
-    if (streamPopup) streamPopup.classList.remove('show');
-    syncMessages();
-  }
+            <div class="hc-msg-input-area">
+                <input type="text" class="hc-msg-input" id="hcMsgInput" placeholder="Type your message.....">
+                <button class="hc-msg-send-btn" id="hcMsgSendBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
 
-  function closeMsgPopup() {
-    if (msgPopup) msgPopup.classList.remove('show');
-  }
+            <div class="hc-stream-bottom-nav">
+                <button class="hc-nav-btn play-btn" id="hcMsgPlayBtn" title="Start Stream">
+                    <img src="/public/images/play_button.png" alt="Play" class="btn-icon">
+                </button>
+                <button class="hc-nav-btn orb-btn" id="hcMsgOrbBtn" title="Voice Command">
+                    <img src="/public/images/purple_orb.png" alt="Voice Command" class="orb-icon">
+                </button>
+                <button class="hc-nav-btn msg-btn" id="hcMsgMsgBtn" title="Messages">
+                    <img src="/public/images/message_button_button.png" alt="Messages" class="btn-icon">
+                </button>
+            </div>
+        </div>
 
-  if (playBtn) {
-    playBtn.addEventListener('click', function () {
-      if (hiddenStream) hiddenStream.click();
-      togglePlayPauseButton(playBtn);
-    });
-  }
+        <!-- ============ OLD ORB (hidden, needed by device-canvas.js) ============ -->
+        <div class="orb-root" id="orbVisual">
+            <div class="halo"></div>
+            <div class="ground"></div>
+            <div class="ring-spin"></div>
+            <div class="ring-spin-border"></div>
+            <div class="ring-inner"></div>
+            <div class="sphere">
+                <div class="nebula"></div>
+                <canvas id="wc"></canvas>
+            </div>
+        </div>
 
-  function togglePlayPauseButton(btn) {
-    var img = btn.querySelector('.btn-icon');
-    if (!img) return;
+        <div class="resp" id="responseCard">
+            <div class="rtxt" id="responseText"></div>
+        </div>
 
-    if (img.src.includes('play_button.png')) {
-      img.src = '/public/images/pause_button.png';
-      img.alt = 'Pause';
-      btn.title = 'Stop Stream';
-    } else {
-      img.src = '/public/images/play_button.png';
-      img.alt = 'Play';
-      btn.title = 'Start Stream';
-    }
-  }
+        <div class="mic-wrap">
+            <div class="mic-zone" id="micButton">
+                <div class="mic-btn" id="mb"></div>
+            </div>
+            <div class="mic-lbl" id="micInstruction"></div>
+        </div>
 
-  if (orbBtn) {
-    orbBtn.addEventListener('click', function () {
-      if (hiddenVoice) hiddenVoice.click();
-      orbBtn.classList.toggle('active');
-    });
-  }
+        <div class="control-panel" id="controlPanel">
+            <div class="xr-id-section">
+                <input type="text" id="xrIdDisplay" class="xr-id-display" readonly placeholder="XR-ID" />
+                <div id="peerStatusDisplay" class="peer-status-display" style="display: none;">
+                    <span id="peerStatusText"></span>
+                </div>
+            </div>
+            <div class="manual-controls">
+                <button class="control-btn" id="manualStreamBtn" data-action="stream"><span>Start Stream</span></button>
+                <button class="control-btn" id="manualMuteBtn" data-action="mute"><span>Mute</span></button>
+                <button class="control-btn" id="manualVideoBtn" data-action="video"><span>Hide Video</span></button>
+                <button class="control-btn audio-btn-panel" id="btnAudio" disabled><span id="audioLabel">Audio</span></button>
+            </div>
+            <div class="messages-section">
+                <div class="messages-header">Messages</div>
+                <div class="messages-list" id="visibleMsgList"></div>
+                <div class="message-input-section">
+                    <input type="text" id="visibleMsgInput" class="msg-input" placeholder="Type a message..." />
+                    <label class="urgent-checkbox"><input type="checkbox" id="visibleChkUrgent" /><span>Urgent</span></label>
+                    <button class="send-btn" id="visibleBtnSend">Send</button>
+                </div>
+            </div>
+        </div>
 
-  if (msgBtn) {
-    msgBtn.addEventListener('click', function () {
-      openMsgPopup();
-    });
-  }
+        <div class="toast" id="toast"></div>
 
-  if (streamPlayBtn) {
-    streamPlayBtn.addEventListener('click', function () {
-      if (hiddenStream) hiddenStream.click();
-      togglePlayPauseButton(streamPlayBtn);
-    });
-  }
+        <!-- Hidden functional elements for ui.js (UNCHANGED) -->
+        <div id="status" class="status status-disconnected" hidden>Status: Disconnected</div>
+        <div id="chipLastCmd" hidden>Heard: ...</div>
+        <div id="bdot" class="bdot off" hidden></div>
+        <span id="btxt" class="btxt off" hidden>DISCONNECTED</span>
 
-  if (streamOrbBtn) {
-    streamOrbBtn.addEventListener('click', function () {
-      if (hiddenVoice) hiddenVoice.click();
-      streamOrbBtn.classList.toggle('active');
-      if (orbBtn) orbBtn.classList.toggle('active');
-    });
-  }
+        <div class="hidden-controls" hidden>
+            <input id="deviceXrIdInput" placeholder="Enter Device XR ID (e.g. 1234)" />
+            <button id="btnConnect">Connect</button>
+            <button id="btnStream">Start Stream</button>
+            <button id="btnMute">Mute</button>
+            <button id="btnVideo">Hide Video</button>
+            <button id="btnVoice">Start Voice</button>
+            <button id="btnStartRec">Start Recording</button>
+            <button id="btnStopRec">Stop Recording</button>
+        </div>
 
-  if (streamMsgBtn) {
-    streamMsgBtn.addEventListener('click', function () {
-      closeStreamPopup();
-      openMsgPopup();
-    });
-  }
+        <video id="preview" autoplay playsinline webkit-playsinline muted hidden></video>
+        <div id="noStream" hidden>Stream not ready</div>
 
-  if (streamMuteBtn) {
-    streamMuteBtn.addEventListener('click', function () {
-      if (hiddenMute) hiddenMute.click();
-    });
-  }
+        <div class="hidden-controls" hidden>
+            <div id="msgList"></div>
+            <input id="msgInput" placeholder="Type a message..." />
+            <input id="chkUrgent" type="checkbox" />
+            <button id="btnSend">Send</button>
+        </div>
 
-  if (streamHideBtn) {
-    streamHideBtn.addEventListener('click', function () {
-      if (hiddenVideo) hiddenVideo.click();
-    });
-  }
+        <!-- Old logout button (hidden, but ID preserved for existing logout handler) -->
+        <button id="logoutBtn" class="old-logout" hidden></button>
+    </div>
 
-  if (streamPauseBtn) {
-    streamPauseBtn.addEventListener('click', function () {
-      var btnAudio = document.getElementById('btnAudio');
-      if (btnAudio && !btnAudio.disabled) {
-        btnAudio.click();
-      }
-    });
-  }
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/public/js/config.js"></script>
+    <script src="/public/js/device-canvas.js"></script>
+    <script type="module" src="/public/js/ui.js"></script>
+    <script src="/public/js/device-healthcare-ui.js"></script>
 
-  if (msgPlayBtn) {
-    msgPlayBtn.addEventListener('click', function () {
-      closeMsgPopup();
-      if (hiddenStream) hiddenStream.click();
-      togglePlayPauseButton(msgPlayBtn);
-    });
-  }
-
-  if (msgOrbBtn) {
-    msgOrbBtn.addEventListener('click', function () {
-      if (hiddenVoice) hiddenVoice.click();
-      if (orbBtn) orbBtn.classList.toggle('active');
-    });
-  }
-
-  if (msgMsgBtn) {
-    msgMsgBtn.addEventListener('click', function () {
-      closeMsgPopup();
-    });
-  }
-
-  if (hcMsgSendBtn) {
-    hcMsgSendBtn.addEventListener('click', function () {
-      var text = (hcMsgInput && hcMsgInput.value || '').trim();
-      if (!text) return;
-
-      if (hiddenMsgInput) hiddenMsgInput.value = text;
-      if (hiddenChkUrgent) hiddenChkUrgent.checked = false;
-      if (hiddenSend) hiddenSend.click();
-
-      if (hcMsgInput) hcMsgInput.value = '';
-      setTimeout(syncMessages, 200);
-    });
-  }
-
-  if (hcMsgInput) {
-    hcMsgInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (hcMsgSendBtn) hcMsgSendBtn.click();
-      }
-    });
-  }
-
-  function isSystemMessage(senderText, msgText) {
-    var s = (senderText || '').toLowerCase().trim();
-    var t = (msgText || '').toLowerCase().trim();
-    if (s === 'system' || s === 'voice' || s === 'note') return true;
-    if (t.indexOf('connected to server') >= 0) return true;
-    if (t.indexOf('disconnected from server') >= 0) return true;
-    if (t.indexOf('connecting') >= 0 && t.indexOf('…') >= 0) return true;
-    if (t.indexOf('connected as xr device') >= 0) return true;
-    if (t.indexOf('stream started') >= 0) return true;
-    if (t.indexOf('stream stopped') >= 0) return true;
-    if (t.indexOf('paired with') >= 0) return true;
-    if (t.indexOf('desktop connected') >= 0) return true;
-    if (t.indexOf('is online') >= 0) return true;
-    if (t.indexOf('is offline') >= 0) return true;
-    if (t.indexOf('voice recognition') >= 0) return true;
-    if (t.indexOf('unrecognized command') >= 0) return true;
-    if (t.indexOf('note saved') >= 0) return true;
-    if (t.indexOf('note recording') >= 0) return true;
-    if (t.indexOf('disconnecting') >= 0) return true;
-    if (t.indexOf('no desktops available') >= 0) return true;
-    if (t.indexOf('microphone') >= 0) return true;
-    return false;
-  }
-
-  function syncMessages() {
-    if (!hiddenMsgList) return;
-
-    var items = hiddenMsgList.querySelectorAll('.msg');
-    var historyHtml = '';
-    var recentHtml = '';
-
-    var allItems = Array.prototype.slice.call(items);
-
-    var realItems = allItems.filter(function (item) {
-      var sender = item.querySelector('.msg-header');
-      var text = item.querySelector('.msg-text');
-      var senderText = sender ? sender.textContent.replace(/URGENT/g, '').trim() : '';
-      var msgText = text ? text.textContent : '';
-      return !isSystemMessage(senderText, msgText);
-    });
-
-    if (realItems.length > 0) {
-      var last = realItems[realItems.length - 1];
-      var lastSender = last.querySelector('.msg-header');
-      var lastText = last.querySelector('.msg-text');
-
-      recentHtml = '<div class="hc-msg-item"><div class="hc-msg-item-header"><div>';
-      recentHtml += '<div class="hc-msg-sender">' + escapeHtml(lastSender ? lastSender.textContent.replace(/URGENT/g, '').trim() : '') + '</div>';
-      recentHtml += '</div><button class="hc-msg-reply-btn" onclick="document.getElementById(\'hcMsgInput\').focus()">Reply</button></div>';
-      recentHtml += '<div class="hc-msg-text">' + escapeHtml(lastText ? lastText.textContent : '') + '</div></div>';
-    }
-
-    for (var i = realItems.length - 1; i >= 0; i--) {
-      var item = realItems[i];
-      var sender = item.querySelector('.msg-header');
-      var text = item.querySelector('.msg-text');
-      var time = item.querySelector('.msg-timestamp');
-
-      var senderText = sender ? sender.textContent.replace(/URGENT/g, '').trim() : '';
-      var msgText = text ? text.textContent : '';
-      var timeText = time ? time.textContent : '';
-
-      var isUrgent = item.classList.contains('msg-urgent');
-
-      historyHtml += '<div class="hc-msg-item' + (isUrgent ? ' hc-msg-urgent' : '') + '">';
-      historyHtml += '<div class="hc-msg-item-header">';
-      historyHtml += '<div><div class="hc-msg-sender">' + escapeHtml(senderText) + '</div></div>';
-      historyHtml += '<div class="hc-msg-time">' + escapeHtml(timeText) + '</div>';
-      historyHtml += '</div>';
-      historyHtml += '<div class="hc-msg-text">' + escapeHtml(msgText) + '</div>';
-      historyHtml += '</div>';
-    }
-
-    if (hcRecentMsgContent) hcRecentMsgContent.innerHTML = recentHtml || '';
-    if (hcMsgHistoryContent) hcMsgHistoryContent.innerHTML = historyHtml || '';
-  }
-
-  function escapeHtml(s) {
-    var div = document.createElement('div');
-    div.textContent = s || '';
-    return div.innerHTML;
-  }
-
-  function getInitials(name) {
-    var parts = (name || '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '';
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
-
-  function updateCircleInitials(circle, initials) {
-    if (!circle) return;
-    var dot = circle.querySelector('.status-dot');
-    var initialsEl = circle.querySelector('.circle-initials');
-    if (initials) {
-      if (dot) dot.style.display = 'none';
-      if (!initialsEl) {
-        initialsEl = document.createElement('span');
-        initialsEl.className = 'circle-initials';
-        circle.appendChild(initialsEl);
-      }
-      initialsEl.textContent = initials;
-    } else {
-      if (dot) dot.style.display = '';
-      if (initialsEl) initialsEl.textContent = '';
-    }
-  }
-
-  var lastInitials = '';
-
-  function syncConnectionStatus() {
-    var isConnected = hiddenBdot && !hiddenBdot.classList.contains('off');
-
-    var allCircles = [profileCircle, streamProfileCircle, msgProfileCircle];
-    for (var i = 0; i < allCircles.length; i++) {
-      if (allCircles[i]) {
-        if (isConnected) {
-          allCircles[i].classList.remove('disconnected');
+    <script>
+        async function maybeRegisterSW() {
+            if (!('serviceWorker' in navigator)) return;
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+            if (!location.pathname.startsWith('/device')) return;
+            try {
+                const response = await fetch('/device/sw.js', { method: 'HEAD' });
+                if (response.status !== 200) return;
+                const registration = await navigator.serviceWorker.register('/device/sw.js', { scope: '/device/' });
+                console.log('[SW] Registered successfully', registration.scope);
+            } catch (err) {
+                console.warn('[SW] Registration failed:', err.message);
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', maybeRegisterSW);
         } else {
-          allCircles[i].classList.add('disconnected');
+            maybeRegisterSW();
         }
-      }
-    }
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const btn = document.querySelector('[data-install]');
+            if (btn) btn.style.display = 'inline-flex';
+        });
+        document.querySelector('[data-install]')?.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+        });
+    </script>
 
-    if (popupConnect) {
-      if (isConnected) {
-        popupConnect.textContent = 'Disconnect';
-        popupConnect.classList.add('connected');
-      } else {
-        popupConnect.textContent = 'Connect';
-        popupConnect.classList.remove('connected');
-      }
-    }
+    <script>
+        (function () {
+            function handleXrLogout() {
+                console.log('[DEVICE] Platform logout detected, closing tab');
+                try { window.close(); } catch (e) { }
+                setTimeout(function () { window.location.href = '/platform'; }, 300);
+            }
+            try {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    var ch = new BroadcastChannel('xr_platform_auth');
+                    ch.onmessage = function (e) {
+                        if (e.data && e.data.type === 'xr_logout') handleXrLogout();
+                    };
+                } else {
+                    window.addEventListener('storage', function (e) {
+                        if (e.key === 'xr_logout_signal') handleXrLogout();
+                    });
+                }
+            } catch (err) {
+                console.warn('[DEVICE] Logout listener setup failed:', err);
+            }
+        })();
+    </script>
 
-    var name = '';
-    if (hiddenXrIdDisplay) {
-      name = hiddenXrIdDisplay.value || '';
-    }
-    if (!name && window.XR_DEVICE_ID) {
-      name = window.XR_DEVICE_ID;
-    }
+    <script>
+        var logoutBtn = document.getElementById('logoutBtn');
+        var hcPopupLogout = document.getElementById('hcPopupLogout');
 
-    var initials = getInitials(name);
-    if (initials !== lastInitials) {
-      lastInitials = initials;
-      updateCircleInitials(profileCircle, initials);
-      updateCircleInitials(streamProfileCircle, initials);
-      updateCircleInitials(msgProfileCircle, initials);
-    }
-
-    var allNames = [doctorNameEl, streamDoctorName, msgDoctorName];
-    for (var j = 0; j < allNames.length; j++) {
-      if (allNames[j]) allNames[j].textContent = name;
-    }
-    if (popupNameEl) popupNameEl.textContent = name || 'Doctor';
-
-    var peerText = peerStatusText ? peerStatusText.textContent : '';
-    var isOnline = peerText && peerText.toLowerCase().indexOf('online') >= 0;
-    var scribeName = peerText ? peerText.replace(/\s*is\s*(Online|Offline)\s*/i, '').trim() : '--';
-
-    if (popupScribeNameEl) popupScribeNameEl.textContent = scribeName || '--';
-    if (popupScribeBadgeEl) {
-      if (isOnline) {
-        popupScribeBadgeEl.textContent = 'Online';
-        popupScribeBadgeEl.className = 'status-badge online';
-      } else {
-        popupScribeBadgeEl.textContent = 'Offline';
-        popupScribeBadgeEl.className = 'status-badge offline';
-      }
-    }
-
-    syncStreamControlLabels();
-  }
-
-  function syncStreamControlLabels() {
-    if (streamMuteBtn && hiddenMute) {
-      var muteText = hiddenMute.textContent.trim();
-      var isMuted = muteText.toLowerCase().indexOf('unmute') >= 0;
-      streamMuteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
-      if (isMuted) {
-        streamMuteBtn.classList.add('active');
-      } else {
-        streamMuteBtn.classList.remove('active');
-      }
-    }
-
-    if (streamHideBtn && hiddenVideo) {
-      var videoText = hiddenVideo.textContent.trim();
-      var isHidden = videoText.toLowerCase().indexOf('show') >= 0;
-      streamHideBtn.textContent = isHidden ? 'Show' : 'Hide';
-      if (isHidden) {
-        streamHideBtn.classList.add('active');
-      } else {
-        streamHideBtn.classList.remove('active');
-      }
-    }
-
-    var btnAudio = document.getElementById('btnAudio');
-    if (streamPauseBtn && btnAudio) {
-      if (btnAudio.disabled) {
-        streamPauseBtn.textContent = 'Pause';
-        streamPauseBtn.classList.remove('active');
-      } else {
-        var audioLabel = document.getElementById('audioLabel');
-        var lbl = audioLabel ? audioLabel.textContent.trim().toLowerCase() : '';
-        if (lbl === 'pause') {
-          streamPauseBtn.textContent = 'Pause';
-          streamPauseBtn.classList.remove('active');
-        } else {
-          streamPauseBtn.textContent = 'Play';
-          streamPauseBtn.classList.add('active');
-        }
-      }
-    }
-  }
-
-  var soloTranscript = document.getElementById('hcSoloTranscript');
-  var soloTranscriptCurrent = document.getElementById('hcSoloTranscriptCurrent');
-  var soloTranscriptPrev = document.getElementById('hcSoloTranscriptPrev');
-
-  function syncTranscript() {
-    var chipEl = document.getElementById('chipLastCmd');
-    if (!chipEl) return;
-    var text = chipEl.textContent || '';
-
-    if (text && text !== 'Heard: ...' && hcTranscriptCurrent) {
-      var clean = text.replace(/^(Heard|Listening):\s*/i, '').trim();
-      if (clean) {
-        var prev = hcTranscriptCurrent.textContent || '';
-        if (prev && prev !== clean) {
-          if (hcTranscriptPrev) hcTranscriptPrev.textContent = prev;
-        }
-        hcTranscriptCurrent.textContent = clean;
-
-        var streamOpen = streamPopup && streamPopup.classList.contains('show');
-        if (!streamOpen && soloTranscript && soloTranscriptCurrent) {
-          var soloPrev = soloTranscriptCurrent.textContent || '';
-          if (soloPrev && soloPrev !== clean) {
-            if (soloTranscriptPrev) soloTranscriptPrev.textContent = soloPrev;
-          }
-          soloTranscriptCurrent.textContent = clean;
-          soloTranscript.classList.add('show');
-        } else if (streamOpen && soloTranscript) {
-          soloTranscript.classList.remove('show');
-        }
-      }
-    } else {
-      if (soloTranscript) soloTranscript.classList.remove('show');
-    }
-  }
-
-  var waveAnimFrame = null;
-  var waveCtx = hcWaveCanvas ? hcWaveCanvas.getContext('2d') : null;
-
-  function startStreamWaveAnimation() {
-    if (!hcWaveCanvas || !waveCtx) return;
-    var W = hcWaveCanvas.width;
-    var H = hcWaveCanvas.height;
-    var t = 0;
-
-    function drawFrame() {
-      waveCtx.clearRect(0, 0, W, H);
-      t++;
-
-      var xrCanvas = window._xrCanvas;
-      var hasLive = xrCanvas && xrCanvas.analyser && xrCanvas.listening && xrCanvas.dataArr;
-      var amp = 0;
-
-      if (hasLive) {
-        xrCanvas.analyser.getByteTimeDomainData(xrCanvas.dataArr);
-        var rms = 0;
-        for (var i = 0; i < xrCanvas.dataArr.length; i++) {
-          var v = (xrCanvas.dataArr[i] / 128) - 1;
-          rms += v * v;
-        }
-        amp = Math.min(Math.sqrt(rms / xrCanvas.dataArr.length) * 7, 1);
-      }
-
-      var layers = [
-        { r: 100, g: 200, b: 255, lw: 2, al: 0.7 },
-        { r: 150, g: 180, b: 255, lw: 1.2, al: 0.4 },
-        { r: 200, g: 160, b: 255, lw: 0.8, al: 0.2 }
-      ];
-
-      for (var li = 0; li < layers.length; li++) {
-        var L = layers[li];
-        var cy = H * 0.5;
-        var phOff = li * 1.2;
-
-        waveCtx.beginPath();
-        for (var x = 0; x <= W; x++) {
-          var u = x / W;
-          var baseY = Math.sin(u * Math.PI * 2 * 2.2 + t * 0.03 + phOff) * H * 0.12 +
-            Math.sin(u * Math.PI * 2 * 1.1 + t * 0.02 + phOff) * H * 0.08;
-
-          var micY = 0;
-          if (hasLive && xrCanvas.dataArr) {
-            var idx = Math.floor(u * (xrCanvas.dataArr.length - 1));
-            var val = (xrCanvas.dataArr[idx] / 128) - 1;
-            micY = val * H * 0.3 * amp;
-          }
-
-          var idle = Math.max(0, 1 - amp * 1.5);
-          var y = cy + (baseY * idle + micY) * Math.sin(u * Math.PI);
-
-          if (x === 0) waveCtx.moveTo(x, y);
-          else waveCtx.lineTo(x, y);
+        function doLogout() {
+            (async function () {
+                try {
+                    console.log('[DEVICE] Manual logout initiated');
+                    try {
+                        sessionStorage.removeItem('XR_DEVICE_LAST_XR_ID_UI');
+                        sessionStorage.removeItem('xr-device-id');
+                    } catch (e) { }
+                    var response = await fetch('/api/platform/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include'
+                    });
+                    var data = await response.json();
+                    history.replaceState(null, '', '/platform');
+                    window.location.replace('/platform');
+                } catch (err) {
+                    console.error('[DEVICE] Logout error:', err);
+                    try {
+                        sessionStorage.removeItem('XR_DEVICE_LAST_XR_ID_UI');
+                        sessionStorage.removeItem('xr-device-id');
+                    } catch (e) { }
+                    history.replaceState(null, '', '/platform');
+                    window.location.replace('/platform');
+                }
+            })();
         }
 
-        var grad = waveCtx.createLinearGradient(0, 0, W, 0);
-        grad.addColorStop(0, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0)');
-        grad.addColorStop(0.1, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + L.al + ')');
-        grad.addColorStop(0.5, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + Math.min(L.al * 1.2, 1) + ')');
-        grad.addColorStop(0.9, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',' + L.al + ')');
-        grad.addColorStop(1, 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0)');
+        if (logoutBtn) logoutBtn.addEventListener('click', doLogout);
+        if (hcPopupLogout) hcPopupLogout.addEventListener('click', doLogout);
+    </script>
 
-        waveCtx.strokeStyle = grad;
-        waveCtx.lineWidth = L.lw;
-        waveCtx.shadowColor = 'rgba(' + L.r + ',' + L.g + ',' + L.b + ',0.5)';
-        waveCtx.shadowBlur = 8;
-        waveCtx.stroke();
-      }
+    <script>
+        (function () {
+            fetch('/api/platform/me', {
+                method: 'GET',
+                credentials: 'include',
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
+            }).then(function (res) {
+                if (res.status === 401 || res.status === 403) {
+                    console.log('[DEVICE] Not authenticated, redirecting to login');
+                    history.replaceState(null, '', '/platform');
+                    window.location.replace('/platform');
+                }
+            }).catch(function () {
+                console.warn('[DEVICE] Session check failed, redirecting to login');
+                history.replaceState(null, '', '/platform');
+                window.location.replace('/platform');
+            });
+        })();
+    </script>
 
-      waveCtx.shadowBlur = 0;
-      waveAnimFrame = requestAnimationFrame(drawFrame);
-    }
+</body>
 
-    drawFrame();
-  }
-
-  function stopStreamWaveAnimation() {
-    if (waveAnimFrame) {
-      cancelAnimationFrame(waveAnimFrame);
-      waveAnimFrame = null;
-    }
-  }
-
-  if (hiddenMsgList) {
-    var hcMsgObserver = new MutationObserver(function () {
-      if (msgPopup && msgPopup.classList.contains('show')) {
-        syncMessages();
-      }
-    });
-
-    hcMsgObserver.observe(hiddenMsgList, {
-      childList: true,
-      subtree: true,
-      characterData: true
-    });
-  }
-
-  setInterval(syncConnectionStatus, 500);
-  setInterval(syncTranscript, 300);
-
-  setTimeout(function () {
-    syncConnectionStatus();
-    syncMessages();
-  }, 1000);
-
-  if (hiddenStream) {
-    var lastStreamText = hiddenStream.textContent.trim().toLowerCase();
-    var streamObserver = new MutationObserver(function () {
-      var newText = hiddenStream.textContent.trim().toLowerCase();
-      if (newText === lastStreamText) return;
-      lastStreamText = newText;
-      var nowActive = newText.indexOf('stop') >= 0;
-      if (nowActive) {
-        openStreamPopup();
-        updateButtonToState(playBtn, 'pause');
-        updateButtonToState(streamPlayBtn, 'pause');
-        updateButtonToState(msgPlayBtn, 'pause');
-      } else {
-        closeStreamPopup();
-        updateButtonToState(playBtn, 'play');
-        updateButtonToState(streamPlayBtn, 'play');
-        updateButtonToState(msgPlayBtn, 'play');
-      }
-    });
-    streamObserver.observe(hiddenStream, { childList: true, subtree: true, characterData: true });
-  }
-
-  function updateButtonToState(btn, state) {
-    if (!btn) return;
-    var img = btn.querySelector('.btn-icon');
-    if (!img) return;
-
-    if (state === 'pause') {
-      img.src = '/public/images/pause_button.png';
-      img.alt = 'Pause';
-      btn.title = 'Stop Stream';
-    } else {
-      img.src = '/public/images/play_button.png';
-      img.alt = 'Play';
-      btn.title = 'Start Stream';
-    }
-  }
-
-  if (hiddenMute) {
-    var muteObserver = new MutationObserver(function () {
-      syncStreamControlLabels();
-    });
-    muteObserver.observe(hiddenMute, { childList: true, subtree: true, characterData: true });
-  }
-
-  if (hiddenVideo) {
-    var videoObserver = new MutationObserver(function () {
-      syncStreamControlLabels();
-    });
-    videoObserver.observe(hiddenVideo, { childList: true, subtree: true, characterData: true });
-  }
-
-})();
+</html>
