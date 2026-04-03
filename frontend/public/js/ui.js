@@ -554,6 +554,21 @@ function syslog(text) {
     console.log('[SYS]', text);
 }
 
+function sysmsg(text) {
+    console.log('[SYS]', text);
+    const m = new Message({ sender: 'System', text, timestamp: nowIso(), xrId: ANDROID_XR_ID, urgent: false, isSystem: true });
+    appendMessage(elMsgList, m);
+    elMsgList.scrollTop = elMsgList.scrollHeight;
+    try {
+        const N = 200;
+        persistedState.messages.push({ sender: 'System', text, timestamp: m.timestamp, xrId: ANDROID_XR_ID, urgent: false, isSystem: true });
+        if (persistedState.messages.length > N) {
+            persistedState.messages = persistedState.messages.slice(-N);
+        }
+        saveState();
+    } catch { }
+}
+
 function msg(sender, text) {
     const m = new Message({ sender, text, timestamp: nowIso(), xrId: ANDROID_XR_ID, urgent: false });
     appendMessage(elMsgList, m);
@@ -1258,7 +1273,7 @@ async function handleConnectDisconnect() {
         clearLegacyLocalXrId();
 
 
-        syslog('Connected as XR Device.');
+        sysmsg('Connected as XR Device.');
     }
 
     // Not connected → connect

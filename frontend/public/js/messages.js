@@ -21,6 +21,7 @@ export class Message {
     this.timestamp = String(m?.timestamp ?? '');
     this.xrId = String(m?.xrId ?? '');
     this.urgent = Boolean(m?.urgent ?? false);
+    this.isSystem = Boolean(m?.isSystem ?? false);
   }
 
   /** @param {unknown} any */
@@ -65,6 +66,24 @@ export class Message {
   /** Create a DOM element representing the message (no framework needed). */
   toElement() {
     const root = document.createElement('div');
+
+    if (this.isSystem) {
+      root.className = 'msg msg-system-notification';
+      root.dataset.isSystem = '1';
+
+      const pill = document.createElement('div');
+      pill.className = 'msg-system-pill';
+      pill.textContent = this.text;
+
+      const ts = document.createElement('div');
+      ts.className = 'msg-system-time';
+      ts.textContent = this.formatTime();
+
+      root.appendChild(pill);
+      root.appendChild(ts);
+      return root;
+    }
+
     root.className = `msg ${this.urgent ? 'msg-urgent' : ''}`;
 
     const header = document.createElement('div');

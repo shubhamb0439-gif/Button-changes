@@ -455,9 +455,20 @@
   }
 
   function parseMsgElement(el) {
+    var isSystem = el.dataset.isSystem === '1';
     var sender = '';
     var time = '';
     var text = '';
+
+    if (isSystem) {
+      var pillEl = el.querySelector('.msg-system-pill');
+      var sysTimeEl = el.querySelector('.msg-system-time');
+      if (pillEl) text = pillEl.textContent.trim();
+      if (sysTimeEl) time = sysTimeEl.textContent.trim();
+      sender = 'System';
+      return { sender: sender, time: time, text: text, isSystem: true };
+    }
+
     var senderEl = el.querySelector('.msg-header');
     var timeEl = el.querySelector('.msg-timestamp');
     var textEl = el.querySelector('.msg-text');
@@ -469,10 +480,18 @@
     }
     if (timeEl) time = timeEl.textContent.trim();
     if (textEl) text = textEl.textContent.trim();
-    return { sender: sender, time: time, text: text };
+    return { sender: sender, time: time, text: text, isSystem: false };
   }
 
   function buildChatBubble(parsed, idx) {
+    if (parsed.isSystem) {
+      var sysEl = document.createElement('div');
+      sysEl.className = 'hc-system-notification';
+      sysEl.innerHTML = '<span class="hc-system-pill">' + escHtml(parsed.text) + '</span>' +
+        (parsed.time ? '<div class="hc-system-time">' + escHtml(parsed.time) + '</div>' : '');
+      return sysEl;
+    }
+
     var isMine = window.XR_DEVICE_ID && (
       parsed.sender === window.XR_DEVICE_ID ||
       parsed.sender === (window._myFullName || '') ||
@@ -485,9 +504,6 @@
     var inner = '';
     if (!isMine && parsed.sender) {
       inner += '<div class="hc-chat-sender">' + escHtml(parsed.sender) + '</div>';
-    }
-    if (replyingTo !== null && replyingTo === idx) {
-      inner += '<div class="hc-chat-reply-preview">Replying...</div>';
     }
     inner += '<div class="hc-chat-text">' + escHtml(parsed.text) + '</div>';
     inner += '<div class="hc-chat-meta">';
