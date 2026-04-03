@@ -182,49 +182,32 @@ html,body{
 
 .hc-nav-btn.orb-btn{
   width:72px;height:72px;
-  background:radial-gradient(circle at 35% 30%, #a78bfa 0%, #7c3aed 50%, #4c1d95 100%);
-  box-shadow:0 4px 20px rgba(124,58,237,0.45), 0 0 40px rgba(167,139,250,0.2);
+  background:transparent;
+  box-shadow:none;
   position:relative;
-  overflow:hidden;
+  overflow:visible;
+  transition:transform 0.3s ease, filter 0.3s ease;
 }
 
-.hc-nav-btn.orb-btn::before{
-  content:'';
-  position:absolute;
-  width:60%;height:60%;
-  top:10%;left:15%;
-  border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+.hc-nav-btn.orb-btn .orb-icon{
+  width:100%;
+  height:100%;
+  object-fit:contain;
   pointer-events:none;
-}
-
-.hc-nav-btn.orb-btn::after{
-  content:'';
-  position:absolute;
-  inset:-4px;
-  border-radius:50%;
-  border:2px solid rgba(167,139,250,0.3);
-  pointer-events:none;
-  animation:orb-ring-pulse 2.5s ease-in-out infinite;
-}
-
-@keyframes orb-ring-pulse{
-  0%,100%{opacity:0.3;transform:scale(1)}
-  50%{opacity:0.8;transform:scale(1.06)}
+  transition:transform 0.3s ease, filter 0.3s ease;
 }
 
 .hc-nav-btn.orb-btn:hover{
-  box-shadow:0 6px 28px rgba(124,58,237,0.55), 0 0 50px rgba(167,139,250,0.3);
   transform:translateY(-2px);
 }
 
 .hc-nav-btn.orb-btn.active{
-  animation:orb-active-pulse 1s ease-in-out infinite;
+  transform:scale(1.15);
+  filter:drop-shadow(0 0 20px rgba(167,139,250,0.8)) drop-shadow(0 0 40px rgba(124,58,237,0.6));
 }
 
-@keyframes orb-active-pulse{
-  0%,100%{box-shadow:0 4px 20px rgba(124,58,237,0.45), 0 0 40px rgba(167,139,250,0.3)}
-  50%{box-shadow:0 4px 30px rgba(124,58,237,0.7), 0 0 60px rgba(167,139,250,0.5)}
+.hc-nav-btn.orb-btn.active .orb-icon{
+  transform:scale(1.05);
 }
 
 .hc-nav-btn.msg-btn{
