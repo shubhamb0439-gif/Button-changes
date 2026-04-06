@@ -1779,6 +1779,9 @@ function onStartRecordingNote() {
     recordingActive = true;
     noteBuffer = '';
     conversationBuffer = '';
+    if (typeof window._hcClearTranscriptSession === 'function') {
+        window._hcClearTranscriptSession();
+    }
     if (!isListening) startVoiceRecognition();
     msg('System', 'Note recording started (say "create" to stop).');
 }

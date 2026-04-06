@@ -578,13 +578,33 @@
   }
 
   var _lastCurrentText = '';
+  var _sessionMsgStartIndex = 0;
+
+  function clearTranscriptDisplay() {
+    _lastCurrentText = '';
+    if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = '';
+    if (hcTranscriptPrev) hcTranscriptPrev.textContent = '';
+    if (hcTranscriptNext) hcTranscriptNext.textContent = '';
+    if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = '';
+    if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = '';
+    if (hcSoloTranscriptNext) hcSoloTranscriptNext.textContent = '';
+    if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
+    var hiddenMsgList = document.getElementById('msgList');
+    if (hiddenMsgList) {
+      _sessionMsgStartIndex = hiddenMsgList.querySelectorAll('.msg').length;
+    }
+  }
+
+  window._hcClearTranscriptSession = clearTranscriptDisplay;
 
   function syncTranscripts() {
     try {
       var hiddenMsgList = document.getElementById('msgList');
       if (!hiddenMsgList) return;
 
-      var items = hiddenMsgList.querySelectorAll('.msg');
+      var allItems = hiddenMsgList.querySelectorAll('.msg');
+      var items = Array.prototype.slice.call(allItems, _sessionMsgStartIndex);
+
       if (!items || items.length === 0) {
         if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
         return;
