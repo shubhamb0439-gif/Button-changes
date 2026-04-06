@@ -50,6 +50,7 @@
     if (hcStreamPopup) hcStreamPopup.classList.remove('show');
     returnVideoFromStreamPopup();
     stopStreamWaveAnimation();
+    if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
   }
 
   function openMsgPopup() {
@@ -570,7 +571,10 @@
       if (!hiddenMsgList) return;
 
       var items = hiddenMsgList.querySelectorAll('.msg');
-      if (!items || items.length === 0) return;
+      if (!items || items.length === 0) {
+        if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
+        return;
+      }
 
       var allParsed = [];
       for (var k = 0; k < items.length; k++) {
@@ -580,15 +584,36 @@
       var userMessages = allParsed.filter(function (p) { return !isSystemMessage(p); });
 
       var lastUserMsg = userMessages.length > 0 ? userMessages[userMessages.length - 1] : (allParsed.length > 0 ? allParsed[allParsed.length - 1] : null);
-      if (lastUserMsg) {
-        if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = lastUserMsg.text || lastUserMsg.sender;
-        if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = lastUserMsg.text || lastUserMsg.sender;
+      if (lastUserMsg && lastUserMsg.text && lastUserMsg.text.trim()) {
+        if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = lastUserMsg.text;
+        if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = lastUserMsg.text;
+
+        var isStreamPopupOpen = hcStreamPopup && hcStreamPopup.classList.contains('show');
+        var isMsgPopupOpen = hcMsgPopup && hcMsgPopup.classList.contains('show');
+
+        if (!isStreamPopupOpen && !isMsgPopupOpen && window._hcVoiceActive) {
+          if (hcSoloTranscript) hcSoloTranscript.classList.add('show');
+        } else {
+          if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
+        }
+      } else {
+        if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
       }
 
       if (userMessages.length >= 2) {
         var prevUserMsg = userMessages[userMessages.length - 2];
-        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevUserMsg.text;
-        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevUserMsg.text;
+        if (hcTranscriptPrev) hcTranscriptPrev.textContent = prevUserMsg.text || '';
+        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = prevUserMsg.text || '';
+      } else {
+        if (hcTranscriptPrev) hcTranscriptPrev.textContent = '';
+        if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = '';
+      }
+
+      if (userMessages.length >= 3) {
+        var nextUserMsg = userMessages[userMessages.length - 3];
+        if (hcTranscriptNext) hcTranscriptNext.textContent = nextUserMsg.text || '';
+      } else {
+        if (hcTranscriptNext) hcTranscriptNext.textContent = '';
       }
 
       if (hcRecentMsgContent) {
@@ -620,8 +645,10 @@
           hcMsgHistoryContent.scrollTop = hcMsgHistoryContent.scrollHeight;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[HC-UI] syncTranscripts error:', e);
+    }
   }
 
-  setInterval(syncTranscripts, 800);
+  setInterval(syncTranscripts, 300);
 })();
