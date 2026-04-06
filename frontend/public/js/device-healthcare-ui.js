@@ -90,6 +90,7 @@
   var hcSoloTranscript = document.getElementById('hcSoloTranscript');
   var hcSoloTranscriptCurrent = document.getElementById('hcSoloTranscriptCurrent');
   var hcSoloTranscriptPrev = document.getElementById('hcSoloTranscriptPrev');
+  var hcSoloTranscriptNext = document.getElementById('hcSoloTranscriptNext');
 
   var hcStreamMuteBtn = document.getElementById('hcStreamMuteBtn');
   var hcStreamHideBtn = document.getElementById('hcStreamHideBtn');
@@ -569,6 +570,15 @@
     return div;
   }
 
+  function triggerSubtitleAnimation(el) {
+    if (!el) return;
+    el.classList.remove('animate-in');
+    void el.offsetWidth;
+    el.classList.add('animate-in');
+  }
+
+  var _lastCurrentText = '';
+
   function syncTranscripts() {
     try {
       var hiddenMsgList = document.getElementById('msgList');
@@ -589,8 +599,18 @@
 
       var lastUserMsg = userMessages.length > 0 ? userMessages[userMessages.length - 1] : (allParsed.length > 0 ? allParsed[allParsed.length - 1] : null);
       if (lastUserMsg && lastUserMsg.text && lastUserMsg.text.trim()) {
-        if (hcTranscriptCurrent) hcTranscriptCurrent.textContent = lastUserMsg.text;
-        if (hcSoloTranscriptCurrent) hcSoloTranscriptCurrent.textContent = lastUserMsg.text;
+        var newText = lastUserMsg.text;
+        var textChanged = newText !== _lastCurrentText;
+        _lastCurrentText = newText;
+
+        if (hcTranscriptCurrent) {
+          hcTranscriptCurrent.textContent = newText;
+          if (textChanged) triggerSubtitleAnimation(hcTranscriptCurrent);
+        }
+        if (hcSoloTranscriptCurrent) {
+          hcSoloTranscriptCurrent.textContent = newText;
+          if (textChanged) triggerSubtitleAnimation(hcSoloTranscriptCurrent);
+        }
 
         var isStreamPopupOpen = hcStreamPopup && hcStreamPopup.classList.contains('show');
         var isMsgPopupOpen = hcMsgPopup && hcMsgPopup.classList.contains('show');
@@ -601,6 +621,7 @@
           if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
         }
       } else {
+        _lastCurrentText = '';
         if (hcSoloTranscript) hcSoloTranscript.classList.remove('show');
       }
 
@@ -616,8 +637,10 @@
       if (userMessages.length >= 3) {
         var nextUserMsg = userMessages[userMessages.length - 3];
         if (hcTranscriptNext) hcTranscriptNext.textContent = nextUserMsg.text || '';
+        if (hcSoloTranscriptNext) hcSoloTranscriptNext.textContent = nextUserMsg.text || '';
       } else {
         if (hcTranscriptNext) hcTranscriptNext.textContent = '';
+        if (hcSoloTranscriptNext) hcSoloTranscriptNext.textContent = '';
       }
 
       if (hcRecentMsgContent) {
