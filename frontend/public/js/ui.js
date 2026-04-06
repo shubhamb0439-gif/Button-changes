@@ -1520,19 +1520,20 @@ function startVoiceRecognition() {
     isListening = true;
     micActive = true;
     micActiveSince = Date.now();
+    window._hcVoiceActive = true;
     try {
         rec.start();
         msg('System', 'Voice recognition started');
         console.log('[VoiceRec] Started successfully');
     } catch (e) {
         console.error('[VoiceRec] Failed to start:', e.message);
-        // If it's already started error, that's OK
         if (e.message && e.message.includes('already started')) {
             console.log('[VoiceRec] Already started, continuing...');
             msg('System', 'Voice recognition active');
         } else {
             msg('System', 'Failed to start voice: ' + e.message);
             isListening = false;
+            window._hcVoiceActive = false;
             if (orbUI) orbUI.syncVoiceState(false);
         }
     }
@@ -1547,6 +1548,7 @@ function stopVoiceRecognition() {
     }
     isListening = false;
     micActive = false;
+    window._hcVoiceActive = false;
     try {
         if (rec) {
             rec.stop();
@@ -1581,7 +1583,15 @@ function processVoiceCommand(cmd) {
         if (!streamActive) {
             console.log('[Voice] Triggering: Start Stream');
             elBtnStream.click();
+            setTimeout(function () {
+                if (typeof window._hcOpenStreamPopup === 'function') {
+                    window._hcOpenStreamPopup();
+                }
+            }, 200);
         } else {
+            if (typeof window._hcOpenStreamPopup === 'function') {
+                window._hcOpenStreamPopup();
+            }
             msg('Voice', 'Stream already active.');
         }
         return;
@@ -1590,6 +1600,9 @@ function processVoiceCommand(cmd) {
         if (streamActive) {
             console.log('[Voice] Triggering: Stop Stream');
             elBtnStream.click();
+            if (typeof window._hcCloseStreamPopup === 'function') {
+                window._hcCloseStreamPopup();
+            }
         } else {
             msg('Voice', 'Stream not active.');
         }

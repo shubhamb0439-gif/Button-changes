@@ -6,6 +6,8 @@ html,body{
   display:flex;justify-content:center;align-items:center;
   overflow:hidden;
   font-family:'Exo 2','Segoe UI',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
 .shell{
@@ -15,11 +17,14 @@ html,body{
   overflow:hidden;
   border-radius:44px;
   flex-shrink:0;
+  touch-action:manipulation;
+  -webkit-overflow-scrolling:touch;
 }
-@media(max-width:430px){
-  .shell{width:100vw;height:100dvh;border-radius:0;}
+@media(max-width:768px){
+  html,body{align-items:stretch;}
+  .shell{width:100vw;height:100vh;height:100dvh;border-radius:0;max-width:none;}
 }
-@media(min-width:431px) and (max-height:860px){
+@media(min-width:769px) and (max-height:860px){
   .shell{width:min(390px,100vw);height:min(844px,100dvh);border-radius:clamp(0px,5vw,44px);}
 }
 
@@ -366,6 +371,11 @@ html,body{
   align-items:center;
   justify-content:space-between;
   padding:16px 20px 12px;
+}
+
+.hc-stream-header .hc-doctor-name{
+  color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,0.5);
 }
 
 .hc-stream-wave{
@@ -741,11 +751,16 @@ html,body{
   .hc-msg-input-area{padding:8px 16px 16px;}
 }
 
-@media(min-width:430px) and (max-width:768px){
-  .shell{width:100vw;height:100dvh;border-radius:0;}
-}
-
 @media(min-width:769px){
   .hc-stream-popup{border-radius:44px;}
   .hc-msg-popup{border-radius:44px;}
+}
+
+@media(max-width:768px){
+  .hc-nav-btn{-webkit-tap-highlight-color:transparent;user-select:none;}
+  .hc-stream-ctrl-btn{-webkit-tap-highlight-color:transparent;}
+  .hc-msg-input{font-size:16px;}
+  .hc-bottom-nav{bottom:max(24px,env(safe-area-inset-bottom,24px));}
+  .hc-stream-bottom-nav{padding:0 0 max(24px,env(safe-area-inset-bottom,24px));}
+  .hc-msg-input-area{padding-bottom:max(24px,env(safe-area-inset-bottom,24px));}
 }

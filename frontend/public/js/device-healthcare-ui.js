@@ -18,6 +18,48 @@
   var hcStreamPopup = document.getElementById('hcStreamPopup');
   var hcMsgPopup = document.getElementById('hcMsgPopup');
 
+  var _streamActive = false;
+
+  function isStreamActive() {
+    var btn = document.getElementById('manualStreamBtn');
+    if (btn) return btn.classList.contains('active');
+    return _streamActive;
+  }
+
+  function startStream() {
+    if (!isStreamActive()) {
+      if (hiddenStream) hiddenStream.click();
+      _streamActive = true;
+    }
+  }
+
+  function stopStream() {
+    if (isStreamActive()) {
+      if (hiddenStream) hiddenStream.click();
+      _streamActive = false;
+    }
+  }
+
+  function openStreamPopup() {
+    if (hcStreamPopup) hcStreamPopup.classList.add('show');
+    moveVideoToStreamPopup();
+    startStreamWaveAnimation();
+  }
+
+  function closeStreamPopup() {
+    if (hcStreamPopup) hcStreamPopup.classList.remove('show');
+    returnVideoFromStreamPopup();
+    stopStreamWaveAnimation();
+  }
+
+  function openMsgPopup() {
+    if (hcMsgPopup) hcMsgPopup.classList.add('show');
+  }
+
+  function closeMsgPopup() {
+    if (hcMsgPopup) hcMsgPopup.classList.remove('show');
+  }
+
   var hcProfileToggle = document.getElementById('hcProfileToggle');
   var hcProfilePopup = document.getElementById('hcProfilePopup');
   var hcPopupOverlay = document.getElementById('hcPopupOverlay');
@@ -235,12 +277,25 @@
     }
   }
 
+  function syncOrbState(active) {
+    var allOrbs = [orbBtn, streamOrbBtn, msgOrbBtn];
+    allOrbs.forEach(function (b) {
+      if (!b) return;
+      if (active) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+    setHomeMicActive(active);
+  }
+
+  function isVoiceActive() {
+    return orbBtn ? orbBtn.classList.contains('active') : false;
+  }
+
   if (orbBtn) {
     orbBtn.addEventListener('click', function () {
+      var willBeActive = !isVoiceActive();
       if (hiddenVoice) hiddenVoice.click();
-      orbBtn.classList.toggle('active');
-      var isActive = orbBtn.classList.contains('active');
-      setHomeMicActive(isActive);
+      syncOrbState(willBeActive);
     });
   }
 
@@ -267,69 +322,58 @@
 
   if (playBtn) {
     playBtn.addEventListener('click', function () {
-      if (hiddenStream) hiddenStream.click();
-      if (hcStreamPopup) hcStreamPopup.classList.add('show');
-      moveVideoToStreamPopup();
-      startStreamWaveAnimation();
+      startStream();
+      openStreamPopup();
     });
   }
 
   if (msgBtn) {
     msgBtn.addEventListener('click', function () {
-      if (hcMsgPopup) hcMsgPopup.classList.add('show');
+      openMsgPopup();
     });
   }
 
   if (streamOrbBtn) {
     streamOrbBtn.addEventListener('click', function () {
+      var willBeActive = !isVoiceActive();
       if (hiddenVoice) hiddenVoice.click();
-      streamOrbBtn.classList.toggle('active');
-      if (orbBtn) orbBtn.classList.toggle('active');
-      var isActive = streamOrbBtn.classList.contains('active');
-      setHomeMicActive(isActive);
+      syncOrbState(willBeActive);
     });
   }
 
   if (streamPlayBtn) {
     streamPlayBtn.addEventListener('click', function () {
-      if (hiddenStream) hiddenStream.click();
-      if (hcStreamPopup) hcStreamPopup.classList.remove('show');
-      returnVideoFromStreamPopup();
-      stopStreamWaveAnimation();
+      stopStream();
+      closeStreamPopup();
     });
   }
 
   if (streamMsgBtn) {
     streamMsgBtn.addEventListener('click', function () {
-      if (hcStreamPopup) hcStreamPopup.classList.remove('show');
-      returnVideoFromStreamPopup();
-      stopStreamWaveAnimation();
-      if (hcMsgPopup) hcMsgPopup.classList.add('show');
+      closeStreamPopup();
+      openMsgPopup();
     });
   }
 
   if (msgOrbBtn) {
     msgOrbBtn.addEventListener('click', function () {
+      var willBeActive = !isVoiceActive();
       if (hiddenVoice) hiddenVoice.click();
-      if (orbBtn) orbBtn.classList.toggle('active');
-      var isActive = orbBtn && orbBtn.classList.contains('active');
-      setHomeMicActive(isActive);
+      syncOrbState(willBeActive);
     });
   }
 
   if (msgPlayBtn) {
     msgPlayBtn.addEventListener('click', function () {
-      if (hcMsgPopup) hcMsgPopup.classList.remove('show');
-      if (hiddenStream) hiddenStream.click();
-      if (hcStreamPopup) hcStreamPopup.classList.add('show');
-      moveVideoToStreamPopup();
-      startStreamWaveAnimation();
+      closeMsgPopup();
+      startStream();
+      openStreamPopup();
     });
   }
 
   if (msgMsgBtn) {
     msgMsgBtn.addEventListener('click', function () {
-      if (hcMsgPopup) hcMsgPopup.classList.remove('show');
+      closeMsgPopup();
     });
   }
 
@@ -443,6 +487,30 @@
 
   setInterval(syncDoctorInfo, 1000);
   setTimeout(syncDoctorInfo, 500);
+
+  window._hcOpenStreamPopup = openStreamPopup;
+  window._hcCloseStreamPopup = closeStreamPopup;
+  window._hcOpenMsgPopup = openMsgPopup;
+
+  var _lastStreamBtnState = false;
+  function watchStreamBtnState() {
+    var btn = document.getElementById('manualStreamBtn');
+    if (!btn) return;
+    var nowActive = btn.classList.contains('active');
+    if (nowActive !== _lastStreamBtnState) {
+      _lastStreamBtnState = nowActive;
+      _streamActive = nowActive;
+      if (nowActive && !hcStreamPopup.classList.contains('show') && !hcMsgPopup.classList.contains('show')) {
+        openStreamPopup();
+      }
+    }
+    var voiceActive = typeof isListening !== 'undefined' ? isListening : false;
+    var orbShouldBeActive = orbBtn ? orbBtn.classList.contains('active') : false;
+    if (window._hcVoiceActive !== undefined && window._hcVoiceActive !== orbShouldBeActive) {
+      syncOrbState(window._hcVoiceActive);
+    }
+  }
+  setInterval(watchStreamBtnState, 300);
 
   function parseMsgElement(el) {
     var sender = '';
