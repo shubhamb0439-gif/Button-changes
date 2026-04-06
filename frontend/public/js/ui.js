@@ -1455,6 +1455,7 @@ function setupSR() {
                 console.log('[VoiceRec] Adding to note buffer');
                 noteBuffer += (noteBuffer ? ' ' : '') + finalTxt;
                 conversationBuffer += (conversationBuffer ? ' ' : '') + finalTxt;
+                msg('Transcription', finalTxt);
             } else {
                 console.log('[VoiceRec] Processing as command');
                 processVoiceCommand(finalLower);
