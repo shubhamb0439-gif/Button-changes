@@ -284,6 +284,7 @@ let pairedDesktopId = null; // Option B: set from room_joined members
 let recordingActive = false;
 let noteBuffer = '';
 let lastPartialSentAt = 0;
+let noteSessionStartTime = 0;
 
 // battery push timer (5s)
 let batteryTimer = null;
@@ -1452,6 +1453,10 @@ function setupSR() {
                 onStopRecordingNote();
                 return;
             } else if (recordingActive) {
+                if (Date.now() - noteSessionStartTime < 1200) {
+                    console.log('[VoiceRec] Skipping stale audio at session start');
+                    return;
+                }
                 console.log('[VoiceRec] Adding to note buffer');
                 noteBuffer += (noteBuffer ? ' ' : '') + finalTxt;
                 conversationBuffer += (conversationBuffer ? ' ' : '') + finalTxt;
@@ -1777,8 +1782,10 @@ if (elBtnVoice) {
 function onStartRecordingNote() {
     if (recordingActive) return;
     recordingActive = true;
+    noteSessionStartTime = Date.now();
     noteBuffer = '';
     conversationBuffer = '';
+    lastPartialSentAt = 0;
     if (typeof window._hcClearTranscriptSession === 'function') {
         window._hcClearTranscriptSession();
     }
