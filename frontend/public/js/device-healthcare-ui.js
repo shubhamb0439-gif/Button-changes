@@ -513,6 +513,10 @@
   }
   setInterval(watchStreamBtnState, 300);
 
+  window.addEventListener('DOMContentLoaded', function() {
+    syncTranscripts();
+  });
+
   function parseMsgElement(el) {
     var sender = '';
     var time = '';
