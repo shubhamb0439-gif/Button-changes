@@ -90,6 +90,7 @@
   var hcSoloTranscript = document.getElementById('hcSoloTranscript');
   var hcSoloTranscriptCurrent = document.getElementById('hcSoloTranscriptCurrent');
   var hcSoloTranscriptPrev = document.getElementById('hcSoloTranscriptPrev');
+  var hcSoloTranscriptNext = document.getElementById('hcSoloTranscriptNext');
 
   var hcStreamMuteBtn = document.getElementById('hcStreamMuteBtn');
   var hcStreamHideBtn = document.getElementById('hcStreamHideBtn');
@@ -613,12 +614,8 @@
         if (hcSoloTranscriptPrev) hcSoloTranscriptPrev.textContent = '';
       }
 
-      if (userMessages.length >= 3) {
-        var nextUserMsg = userMessages[userMessages.length - 3];
-        if (hcTranscriptNext) hcTranscriptNext.textContent = nextUserMsg.text || '';
-      } else {
-        if (hcTranscriptNext) hcTranscriptNext.textContent = '';
-      }
+      if (hcTranscriptNext) hcTranscriptNext.textContent = '';
+      if (hcSoloTranscriptNext) hcSoloTranscriptNext.textContent = '';
 
       if (hcRecentMsgContent) {
         hcRecentMsgContent.innerHTML = '';
