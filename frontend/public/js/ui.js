@@ -1800,6 +1800,10 @@ function onStopRecordingNote() {
 function finalizeRecordingNote() {
     recordingActive = false;
 
+    if (typeof window._hcClearTranscriptSession === 'function') {
+        window._hcClearTranscriptSession();
+    }
+
     if (conversationBuffer.trim()) {
         sendTranscript(conversationBuffer.trim(), true);
         conversationBuffer = '';
